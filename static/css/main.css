@@ -1,0 +1,878 @@
+
+* {
+	vertical-align: middle;
+}
+
+/* Webkit micro scrollbars */
+
+::-webkit-scrollbar {
+    width:9px;
+    height:9px;
+}
+
+::-webkit-scrollbar-track {
+    -webkit-border-radius:5px;
+    border-radius:5px;
+    background:rgba(140,140,140,0.1);
+}
+
+::-webkit-scrollbar-thumb {
+    -webkit-border-radius:5px;
+    border-radius:5px;
+    background:rgba(140,140,140,0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background:rgba(140,140,140,0.4);
+}
+
+::-webkit-scrollbar-thumb:window-inactive {
+    background:rgba(140,140,140,0.5);
+}
+
+/* elmement */
+
+body {
+	font-family: Arial, sans-serif;
+	font-size: 14px;
+	margin: 0;
+	overflow: hidden;
+}
+
+hr {
+	border: 0px;
+	border-top: 1px solid #ccc;
+}
+
+button {
+    position: static;
+    margin-left: 0px;
+}
+
+select {
+    margin-left: 1px;
+}
+
+textarea {
+	white-space: pre;
+    word-wrap: normal;
+    width: 100%;
+    height: 100%;
+}
+
+	textarea.success {
+		border-color: #8b8 !important;
+	}
+
+	textarea.fail {
+		border-color: #f00 !important;
+		background-color: rgba(255,0,0,0.05);
+	}
+
+textarea, input { outline: none; } /* osx */
+
+.spacer-container {
+    width: 100%;
+    display: flex;
+    height: 30px;
+    justify-content: center;
+    padding: 10px;
+}
+
+.spacer-container-vertical {
+    height: 100%;
+    /* padding: 10px; */
+    /* display: flex;
+    justify-content: center; */
+    width: 30px;
+}
+
+/* Shadow separaor by Julien Knebel
+https://codepen.io/jkneb/pen/qgpJF */
+
+.or-spacer {
+    width: 80%;
+    position: absolute;
+    display: inline-block;
+    text-align: center;
+  }
+  .or-spacer .mask {
+    overflow: hidden;
+    height: 20px;
+    width: 100%;
+  }
+  .or-spacer .mask:after {
+    content: '';
+    display: block;
+    margin: -25px auto 0;
+    width: 100%;
+    height: 25px;
+    border-radius: 125px / 12px;
+    box-shadow: 0 0 8px black;
+  }
+  .or-spacer span {
+    width: 50px;
+    height: 50px;
+    position: absolute;
+    bottom: 100%;
+    margin-bottom: -25px;
+    left: 50%;
+    margin-left: -25px;
+    border-radius: 100%;
+    box-shadow: 0 2px 4px #999;
+    background: white;
+  }
+
+.or-spacer-vertical {
+    display: inline-block;
+    height: 80%;
+    position: absolute !important;
+    z-index: 10;
+}
+  .or-spacer-vertical .mask {
+    overflow: hidden;
+    width: 20px;
+    height: 100%;
+  }
+  .or-spacer-vertical.left .mask:after {
+    content: '';
+    display: inline-block;
+    margin-left: -20px;
+    width: 20px;
+    height: 100%;
+    border-radius: 12px / 125px;
+    box-shadow: 0 0 8px black;
+  }
+  .or-spacer-vertical.right .mask:before {
+    content: '';
+    display: inline-block;
+    text-align: center;
+    margin-left: 20px;
+    width: 20px;
+    height: 100%;
+    border-radius: 12px / 125px;
+    box-shadow: 0 0 8px black;
+  }
+  
+
+input.Number {
+    font-size: 12px;                            /** TODO: Use of !imporant is not ideal **/
+    background-color: transparent!important;    /* For now this is a quick fix a rendering issue due to inherited background */
+    border: 1px solid transparent;
+    padding: 2px;
+    cursor: col-resize;
+} 
+
+.hidden {
+    position: absolute !important;
+    height: 0.1px;
+    width: 0.1px;
+    display: inline-block;
+    overflow: hidden;
+    clip: rec(1px, 1px, 1px, 1px);
+    z-index: -1;
+    opacity: 0;
+    border: 0px solid !important;
+    padding: 0px !important;
+    text-align: center;
+}
+    .hidden + label {
+        cursor: pointer;
+        float: left;
+        /* font-weight: 400; */
+        vertical-align: center;
+        /* -webkit-box-shadow: inset 1px 2px 3px 1px rgba(0,0,0,0.2);
+        -moz-box-shadow: inset 1px 2px 3px 1px rgba(0,0,0,0.2);
+        box-shadow: inset 1px 2px 3px 1px rgba(0,0,0,0.1); */
+        /* padding: 7px; */
+        display: flex;
+        justify-content: space-between;
+        opacity: 1;
+        width: 100%;
+        height: 100%;
+    }
+
+
+
+    label:hover, label:active, .hidden:hover+label, .hidden:active+label {
+        opacity: 1
+    }
+
+    .hidden:disabled+label,
+    .hidden[disabled] {
+        opacity: 0.5
+    }
+
+    .hidden:focus + label {
+        outline: -webkit-focus-ring-color auto 5px;
+    }
+
+
+
+input[type=range]:focus:after {
+    position: absolute;
+    transform: translate(-100%,-50% );
+    content: attr(value);
+    font-size: 12px;
+}
+
+/* class */
+
+.deleteInfo:after {
+    position: absolute;
+    transform: translate(-50%,-250% );
+    content: "double-click to delete";
+    font-size: 10px;
+    display: block;
+}
+
+.Panel {
+
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+
+    /* No support for these yet */
+    -o-user-select: none;
+    user-select: none;
+}
+
+.OverlayPanel {
+    z-index: 300;
+    position: absolute;
+    padding: 10px;
+    overflow: auto;
+    border: 1px solid;
+    border-radius: 5px;
+    margin: 5%;
+    display: none;
+    text-align: center;
+    opacity: 0.9
+}
+
+.OverlayPanel:focus {
+    z-index: 320;
+
+}
+
+.moleculeOverlay {
+    width: 200px;
+    margin: 0px 20px 10px 0px;
+    position:relative;
+    
+}
+
+#molOverlayContainer {
+    display:flex;
+    align-items: flex-end;
+    flex-flow:column;
+}
+
+#moleculeInformation .AlignedEntry .Text {
+    width: 65% !important;
+}
+
+#moleculeInformation .AlignedEntry input {
+    width: 30% !important;
+}
+
+#moleculeEditor .AlignedEntry .Text {
+    width: 45% !important;
+}
+
+#moleculeEditor .AlignedEntry input {
+    width: 50% !important;
+}
+
+.Text {
+    cursor: default;
+    display: inline-block;
+    position: relative;
+    /* float: left; */
+    height: 100%;
+    vertical-align: bottom;
+    text-align: center;
+}
+
+.Text.rotateLeft {
+    -webkit-transform-origin: right bottom;
+    -webkit-transform:rotate(-90deg);
+}
+
+.Text.rotateRight {
+    -webkit-transform-origin: left bottom;
+    -webkit-transform:rotate(90deg);
+}
+
+.FancySelect {
+    padding: 0;
+    cursor: default;
+    overflow: auto;
+    outline: none;
+}
+
+    .FancySelect .option {
+        padding: 4px;
+        white-space: nowrap;
+    }
+
+
+.AlignedEntry {
+    display: flex;
+    align-items: baseline;
+    width: 100%;
+    margin-bottom: 10px;
+}
+    .AlignedEntry span {
+        align-self: baseline;
+        margin-right: 10px;
+    }
+
+.CollapsiblePanel {
+    margin: 10px;
+}
+
+.CollapsiblePanel .CollapsiblePanelButton {
+    float: left;
+    margin-right: 6px;
+    width: 0px;
+    height: 0px;
+    border: 6px solid transparent;
+}
+
+.CollapsiblePanel.collapsed > .CollapsiblePanelButton {
+    margin-top: 2px;
+    border-left-color: #555;
+}
+
+.CollapsiblePanel:not(.collapsed) > .CollapsiblePanelButton {
+    margin-top: 6px;
+    border-top-color: #555;
+}
+
+.CollapsiblePanel.collapsed .CollapsibleContent {
+    display: none;
+}
+
+.CollapsiblePanel:not(.collapsed) > .CollapsibleContent {
+    clear: both;
+}
+
+
+
+/* http://www.brianchu.com/blog/2013/11/02/creating-an-auto-growing-text-input/ */
+
+.AdaptiveTextAreaContainer {
+    position: relative;
+    display: inline-block;
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+
+.AdaptiveTextArea, .AdaptiveTextAreaSize {
+    min-height: 21px;
+    /* need to manually set font and font size */
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    box-sizing: border-box;
+    padding: 2px;
+    border: 1px solid #ccc;
+
+    overflow: hidden;
+    width: 100%;
+}
+
+.AdaptiveTextArea {
+    height: 100%;
+    position: absolute;
+    resize: none;
+
+    /*
+    "pre" or "preline" or "normal" fixes Chrome issue where
+    whitespace at end of lines does not trigger a line break.
+    However, it causes the text to exhibit the behavior seen with
+    "pre" that is described below.
+    */
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.AdaptiveTextAreaSize {
+    visibility: hidden;
+
+    /*
+    Pre-wrap: preserve spacing and newlines, but wrap text.
+    Pre: preserve spacing and newlines but don't wrap text.
+
+    "pre" does not wrap well on Firefox, even with word-wrap:break-word.
+    "pre" on Chrome works with word-wrap, but exhibits different behavior:
+    Instead of entire words being moved to the next line for wrapping,
+    the browser will cut words in the middle for wrapping.
+    "pre-line" has Firefox issues
+    */
+    white-space: pre-wrap;
+    /* Required for wrapping lines in Webkit,
+    but not necessary in Firefox if you have white-space wrapping
+    (pre-wrap, normal, pre-line) already set */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* FlexiColorPicker */
+
+.picker-wrapper,
+.slide-wrapper {
+    position: relative;
+    float: left;
+}
+
+.picker-indicator,
+.slide-indicator {
+    position: absolute;
+    left: 0;
+    top: 0;
+    pointer-events: none;
+}
+
+.picker,
+.slide {
+    cursor: crosshair;
+    float: left;
+}
+
+.slide-wrapper {
+    margin-left: 10px;
+}
+
+.picker-indicator {
+    width: 5px;
+    height: 5px;
+    border: 2px solid darkblue;
+    -moz-border-radius: 4px;
+    -o-border-radius: 4px;
+    -webkit-border-radius: 4px;
+    border-radius: 4px;
+    opacity: .5;
+    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+    filter: progid:DXImageTransform.Microsoft.Alpha(Opacity=50);
+    filter: alpha(opacity=50);
+    background-color: white;
+}
+
+.slide-indicator {
+    width: 100%;
+    height: 10px;
+    left: -4px;
+    opacity: .6;
+    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=60)";
+    filter: progid:DXImageTransform.Microsoft.Alpha(Opacity=60);
+    filter: alpha(opacity=60);
+    border: 4px solid lightblue;
+    -moz-border-radius: 4px;
+    -o-border-radius: 4px;
+    -webkit-border-radius: 4px;
+    border-radius: 4px;
+    background-color: white;
+}
+
+/* http://www.mobify.com/blog/multiline-ellipsis-in-pure-css/ */
+
+.EllipsisMultilineText {
+    overflow: hidden;
+    max-height: 2.6em;
+    line-height: 1.3em;
+}
+
+.EllipsisMultilineText:before {
+    content:"";
+    float: left;
+    width: 5px;
+    max-height: 2.6em;
+}
+
+.EllipsisMultilineText > *:first-child {
+    float: right;
+    width: 100%;
+    margin-top: 0px;
+    margin-bottom: 0px;
+    margin-left: -5px;
+    word-wrap: break-word;
+}
+
+.EllipsisMultilineText:after {
+    content: "\02026";
+
+    box-sizing: content-box;
+    -webkit-box-sizing: content-box;
+    -moz-box-sizing: content-box;
+
+    float: right; position: relative;
+    top: 1.3em; left: 100%;
+    width: 3em; margin-left: -3em;
+    padding-right: 5px;
+
+    text-align: right;
+}
+
+/* resize */
+
+.ResizeLeft, .ResizeLeft:hover {
+    position: relative;
+    float: left;
+    height: 100%;
+    width: 10px;
+}
+
+.ResizeLeft:hover{
+    cursor: col-resize;
+}
+
+/* virtual list */
+
+.VirtualListRow {
+    position: absolute;
+    overflow: hidden;
+    white-space: nowrap;
+    display: inline-block;
+}
+
+.VirtualListRow > .Text {
+    cursor: inherit;
+}
+
+
+
+
+
+.viewport {
+    position: absolute;
+    z-index: 1;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+}
+
+/* id */
+
+.moleculeInterface {
+    position: relative;
+    z-index: 100;
+    margin: 20px;
+    display: flex;
+    align-content: flex-end;
+    justify-content: right;
+    align-items: flex-start;
+}
+
+    .moleculeInterface .Panel {
+        display: inline-block;
+    }
+
+
+
+    
+    
+
+#sideViewport {
+    position: relative;
+    display: inline-block;
+    width: 90%;
+    height: 100vw;
+    max-height: 250px;
+    margin: 5%;
+    z-index: 100;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#fileTitle, #fileTitle span {
+    width: 100%;
+    cursor: pointer;
+    display: inline-block;
+    font-weight: 800;
+    text-align: center;
+}
+
+#moleculeButtons {
+    min-width: 100px;
+    width: 200px;
+    text-align: center;
+    justify-content: stretch;
+}
+
+
+#moleculeButtons .Button{
+    margin-top: 4px;
+    margin-bottom: 8px;
+    display: block;
+    width: 100%;
+}
+
+#fragmentColor {
+    height: 20px !important;
+    width: 20px !important;
+    align-self: middle;
+}
+
+#fragmentColorContainer {
+    display: flex;
+    justify-content: space-between;
+    align-items: middle;
+}
+
+#fragmentPanel {
+    margin-left: 20px;
+    margin-top: 20px;
+}
+
+
+#fragmentSelectPanel {
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+    #fragmentSelectPanel select{
+        z-index: 10;
+    }
+
+    #fragmentSelectPanel .AlignedEntry {
+        align-items: flex-start;
+    }
+
+
+#exportImagePanel {
+    left: 50px;
+    top: 80px;
+}
+
+    #exportImagePanel .Text {
+        margin-right: 20px;
+    }
+
+.progressBar {
+    display: none;
+}
+
+.heading {
+    border-bottom-color: #555;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    height: 25px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+    .heading .Icon {
+        cursor: pointer;
+        margin-left: 20px;
+        float: right;
+    }
+
+#viewbar {
+    position:absolute;
+    width: 100%;
+    padding: 8px;
+    z-index: 200;
+    top: 32px;
+    left: 0px;
+}
+
+    #viewbar .Panel {
+        position: relative;
+        float: left;
+        padding: 6px;
+    }
+
+#alignmentPanel {
+    position: absolute;
+    display: block;
+    width: 100%;
+}
+
+#menubar {
+    position: absolute;
+    width: 100%;
+    height: 32px;
+    padding: 2px;
+    margin: 0px;
+    /* margin-bottom: 4px; */
+    z-index: 1000;
+    top: 0px;
+    left: 0px;
+}
+
+    #menubar .item {
+        margin: 0px;
+        padding: 8px;
+        float: left;
+        cursor: pointer;
+        position: relative;
+        /* display: flex;
+        align-items: baseline;  */
+    }
+
+    /* #menubar .item span {
+        align-self: baseline;
+        margin-right: 10px;
+    } */
+
+    #menubar .menu {
+        float: left;
+        cursor: pointer;
+        position: relative;
+        /* z-index: 1000; */
+    }
+
+        #menubar .menu .title {
+            margin: 0px;
+            padding: 8px;
+        }
+
+
+        #menubar .menu .options {
+            display: none;
+            padding: 5px 0px;
+            width: 230px;
+            position: absolute;
+            top: 32px;
+            background-color: aliceblue
+        }
+
+        #menubar .menu:hover .options {
+            display: block;
+            max-height: 600px;
+            overflow: auto;
+        }
+
+            #menubar .menu .options .option {
+                background-color: transparent;
+                padding: 5px 10px;
+                margin: 0px !important;
+            }
+
+            #menubar .menu .options .option .Panel {
+                display: inline-block;
+                position: relative;
+                /* justify-content: space-between; */
+                width: 100%;
+            }
+
+            #menubar .menu .options .option .Panel > label {
+                display: flex;
+                justify-content: space-between;
+                width: 100%;
+            }
+        
+        
+        
+
+#layout {
+    width: 100%;
+    height: 100%;
+    top: 40px;
+    position: absolute;
+    z-index: 100;
+}
+
+#rightbar {
+    position: absolute;
+    right: 0px;
+    top: 32px;
+    bottom: 250px;
+    width: 380px;
+    overflow: hidden;
+}
+
+    #rightbar .Panel {
+        position: relative;
+        margin-bottom: 10px;
+    }
+
+    #rightbar .Panel.collapsed {
+        margin-bottom: 0px;
+    }
+
+    #rightbar .CollapsibleContent {
+        margin-top: 10px;
+    }
+
+    #rightbar > .Panel {
+        position: relative;
+        padding: 10px;
+        border-top: 1px solid;
+    }
+
+    #rightbar > .Content > .Panel {
+        padding: 10px;
+        border-top: 1px solid;
+    }
+
+    #rightbar .Content {
+        top: 40px;
+        bottom: 0px;
+        position: absolute;
+        overflow: auto;
+        right: 0px;
+        width: 100%;
+    }
+
+#leftbar {
+    position: absolute;
+    left: 0px;
+    top: 32px;
+    bottom: 250px;
+    width: 380px;
+    overflow: hidden;
+}
+    
+        #leftbar .Panel {
+            position: relative;
+            margin-bottom: 10px;
+        }
+    
+        #leftbar .Panel.collapsed {
+            margin-bottom: 0px;
+        }
+    
+        #leftbar .CollapsibleContent {
+            margin-top: 10px;
+        }
+    
+        #leftbar > .Panel {
+            position: relative;
+            padding: 10px;
+            border-top: 1px solid;
+        }
+    
+        #leftbar > .Content > .Panel {
+            padding: 10px;
+            border-top: 1px solid;
+        }
+    
+        #leftbar .Content {
+            top: 40px;
+            bottom: 0px;
+            position: absolute;
+            overflow: auto;
+            right: 0px;
+            width: 100%;
+        }
+
+#toolbar {
+    position: absolute;
+    left: 0px;
+    right: 300px;
+    bottom: 0px;
+    height: 32px;
+}
+
+    #toolbar .Panel {
+        padding: 6px;
+    }
+
+    #toolbar button {
+        margin-right: 6px;
+    }
