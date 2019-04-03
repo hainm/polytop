@@ -5,6 +5,7 @@ A topology builder for polymers. [Click here to go to the web app.](https://lily
 ## Features
 Currently PolyTop only supports GROMACS .itp topologies and .pdb coordinates.
 
+
 ## Usage
 This relies on the user already having coordinates (.pdbs) and topologies (.itps) for 
 each unit fragment of their molecule. You can get these at the [ATB](https://atb.uq.edu.au/).
@@ -12,6 +13,19 @@ each unit fragment of their molecule. You can get these at the [ATB](https://atb
 You may have to manually highlight the PDB file text and paste it into a text document. This 
 will get fixed.
 
+
+- Load a PDB in with File > Load PDB
+- Load a topology for the current molecule with File > Load ITP (optional)
+- Create 'fragments' using the Fragment editor by selecting from the dropdown or picking the atom visually
+- Add molecules to your polymer by aligning fragments with fragments
+- Save a polymer as a monomer (1 residue with all the atoms)
+- Download the .pdb and the .itp
+- Undo and redo
+- Save your current molecules and fragments with File > Save Universe
+- Export an image with File > Export image
+- Keep an eye on your molecule with View > Show molecule information
+- Edit your molecule (delete atoms or move them to a different residue) with View > Show molecule editor
+- Rename your molecule by typing in the Name box
 
 
 ### Error reporting
@@ -36,6 +50,9 @@ email me at
 Thank you <3
 
 ## To do
+- fix appearance of the unit-alignment panel
+- follow Google guide to JS
+- fix width of molecule interaction on the stage where the dropdown and name are
 - accept all the coordinate formats NGL does
 - accept topology formats from other MD engines
 - fix z-index placement of unit selection panels
