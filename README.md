@@ -18,6 +18,7 @@ will get fixed.
 - Load a topology for the current molecule with File > Load ITP (optional)
 - Create 'fragments' using the Fragment editor by selecting from the dropdown or picking the atom visually
 - Add molecules to your polymer by aligning fragments with fragments
+- Add multiple molecules at once
 - Save a polymer as a monomer (1 residue with all the atoms)
 - Download the .pdb and the .itp
 - Undo and redo

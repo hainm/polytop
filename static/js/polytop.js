@@ -428,7 +428,7 @@ PolyTop.GuiBackend.prototype.saveBlob = function (str, fileName) {
     a.click();
     window.URL.revokeObjectURL(url)
     a.parentNode.removeChild(a)
-  }, 300)
+  }, 500)
 }
 
 PolyTop.GuiBackend.prototype.downloadFiles = function () {
@@ -525,7 +525,7 @@ PolyTop.GuiBackend.prototype.setCurrentFragment = function (fragment) {
   self.selectedAtomProxies = fragment.atomProxies
   self.fragmentName.setValue(fragment.name)
   self.fragmentColor.setValue(fragment.color)
-  self.fragmentAtoms.setValue(fragment.atomIndices)
+  self.fragmentAtoms.setValue(fragment.atomIndices, true)
   
   if (self.currentFragment) {
     self.drawFragment(self.currentFragment)
@@ -580,7 +580,7 @@ if (molecule) {
 
   self.itpLoadButton.setDisabled(false)
 
-  self.setCurrentFragment(molecule.currentFragment)
+  self.setCurrentFragment(molecule.newFragment())
   self.fragmentAtoms.setOptions(molecule.atomsToOptions())
   self.fragmentSelect.setOptions(molecule.fragments)
 
