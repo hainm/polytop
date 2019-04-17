@@ -1,4 +1,9 @@
+"""
+$verifimr: verify intramolecular constraints
+"""
+
 import warnings
+import subprocess
 import numpy as np
 
 def rotate_x(x, y, z, coords):
@@ -181,4 +186,4 @@ def MEP_Calcul(MEPCHR_Calc, molecules, **kwargs):
 					# 		system ("mv $scrpath/JOB2-gam_m$NM-$NC-$w.dat .");
 
                     # check if 'TERMINATED NORMALLY' or 'TERMINATED -ABNORMALLY-' or 'TERMINATED ABNORMALLY'
-                    
+
