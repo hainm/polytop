@@ -1,5 +1,8 @@
 import re
+import os
 import logging
+
+from .reorientation import rigid_body_orient, rigid_body_rotate
 
 logger = logging.getLogger(__name__)
 
@@ -100,17 +103,17 @@ def get_gamess_mep_prefix(mol, test_l4a, pcgvar, n_proc, chr_type, debug=False):
 def write_gamess_mep(mol):
     n = 1
     prefix = get_gamess_mep_prefix(mol)
-    elements, numbers = mol.atom_elements, mol.atom_atomic_numbers
+    elements, numbers = mol.atom_elements, mol.atomic_Z
     atoms = [f'{el:2} {z:4.1f}' for el, z in zip(elements, numbers)]
     filenames = []
 
     for c, conf_coords in enumerate(mol.coords, 1):
-        filebase = f'mep-{mol.name}-conf{c:02d}'
+        filebase = f'{mol.name}-{c:02d}'
 
         for ijk in mol.transforms['REORIENT']:
             xyz = conf_coords.copy()
             rigid_body_orient(*ijk, xyz)
-            filename = f'{filebase}-{n:02d}.inp'
+            filename = f'{filebase}-{n:02d}'
             write_gamess_input(filename, prefix, atoms, xyz)
             filenames.append(filename)
             n += 1
@@ -118,19 +121,19 @@ def write_gamess_mep(mol):
         for ijk in mol.transforms['ROTATE']:
             xyz = conf_coords.copy()
             rigid_body_rotate(*ijk, xyz)
-            filename = f'{filebase}-{n:02d}.inp'
+            filename = f'{filebase}-{n:02d}'
             write_gamess_input(filename, prefix, atoms, xyz)
             filenames.append(filename)
             n += 1
 
         for coords in mol.transforms['TRANSLATE']:
             xyz = conf_coords.copy() + coords
-            filename = f'{filebase}-{n:02d}.inp'
+            filename = f'{filebase}-{n:02d}'
             write_gamess_input(filename, prefix, atoms, xyz)
             filenames.append(filename)
             n += 1
 
-    log.info(f'Wrote GAMESS MEP files for molecule {mol.name}')
+    logger.info(f'Wrote GAMESS MEP files for molecule {mol.name}')
     return filenames
 
 
@@ -139,6 +142,55 @@ def write_gamess_input(filename, prefix, atoms, xyz):
     for a, (x, y, z) in zip(atoms, xyz):
         lines.append(f'{a} {x:12.9f} {y:12.9f} {z:12.9f}')
     lines.append(' $END\n')
+    if not filename[-4:] == '.inp':
+        filename += '.inp'
     with open(filename, 'w') as f:
         f.write('\n'.join(lines))
     logger.debug(f'Wrote {filename}')
+
+
+def get_espot_info_gamess(basename):
+    point, atoms = read_gamess_dat(basename)
+    atoms = read_gamess_log(basename, mol) + atoms
+    return point, atoms
+
+
+def read_gamess_log(filename, mol):
+    if not filename[-4:] == '.log':
+        filename += '.log'
+
+    flag = False
+    atoms = []
+    with open(filename, 'r') as f:
+        for line in f:
+            if 'ATOM' in line and 'ATOMIC' in line and 'COORDINATES' in line:
+                flag = True
+            if flag and len(atoms) < mol.n_atoms:
+                try:
+                    atom = map(float, line.split()[2:5])
+                    atoms.append(
+                        '{:17}{:16.7e}{:16.7e}{:16.7e}'.format('', *atom))
+                except:
+                    pass
+    return atoms
+
+
+def read_gamess_dat(filename):
+    if not filename[-4:] == '.dat':
+        filename += '.dat'
+
+    atoms = []
+    flag = False
+    with open(filename, 'r') as f:
+        for line in f:
+            if ('ELECTRIC POTENTIAL' in line
+                    or 'TOTAL NUMBER OF GRID POINTS' in line):
+                flag = True
+            if flag:
+                if 'START OF -MOLPLT- INPUT FILE' in line:
+                    flag = False
+            if flag:
+                point, *atom = map(float, line.split()[:5])
+                atoms.append('{:16.7e}{:16.7e}{:16.7e}{:16.7e}'.format(*atom))
+
+        return point, atoms
