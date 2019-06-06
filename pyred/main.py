@@ -1,9 +1,12 @@
 """
 """
 import argparse
+from .molcollection import MolCollection
+
+pdbs = []
+itps = []
 
 if __name__ == "__main__":
-    # optimise_geometry()
-    compute_mep()
-    calculate_resp()
-    calculate_intermolecular()
+    collection = MolCollection.from_pdbs(pdbs, itps)
+    
+

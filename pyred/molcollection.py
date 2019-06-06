@@ -3,30 +3,28 @@ from .molecule import Molecule
 class MolCollection:
 
     @classmethod
-    def from_pdbs(cls, pdbs, inter_file=None):
+    def from_pdbs(cls, pdbs, itps, inter_file=None):
         collection = cls()
-        for pdb in pdbs:
+        for pdb, itp in zip(pdbs, itps):
             mol = Molecule.from_pdb(pdb)
+            mol.h_bonds_from_itp(itp)
             collection.add_mol(mol)
 
         if inter_file:
             with open(inter_file, 'r') as f:
-                contents = f.readlines()
-        
-        for line in contents:
-            record = line[:6].strip()
-            
-            if record == 'REMARK':
-                fields = line[6:].split()
-                if fields:
-                    remark = fields[0]
-
-                    if remark == 'INTER-MCC':
-                        collection.add_inter_mcc(line)
+                for line in f:
+                    record = line[:6].strip()
                     
-                    elif remark == 'INTER-MEQA':
-                        collection.add_inter_meqa(line)
+                    if record == 'REMARK':
+                        fields = line[6:].split()
+                        if fields:
+                            remark = fields[0]
 
+                            if remark == 'INTER-MCC':
+                                collection.add_inter_mcc(line)
+                            
+                            elif remark == 'INTER-MEQA':
+                                collection.add_inter_meqa(line)
         return collection
         
 
@@ -34,6 +32,7 @@ class MolCollection:
         self.mols = []
         self.mol_names = {}
         self.constraints = []
+        self.equivalents = []
     
     def add_mol(self, mol):
         n = 2
@@ -110,8 +109,14 @@ class MolCollection:
         except ValueError:
             raise ValueError('The atom numbers of INTER-MEQA must be integer '
                              'values. Invalid line: %s' % line)
-        # TODO: Fix this when I get to the calc part
-        self.equivalent.append((mols, atom_numbers))
+        self.equivalents.append((mols, atom_numbers))
     
     def renumber_equivalent(self):
-        for entry in self.equivalent:
+        for mols, atoms in self.equivalents:
+            for i in atoms:
+                numbers = [self.mols[j].atom_numbers[i] for j in mols]
+                if not len(set(numbers)) == 1:
+                    max_heavy = [self.mols[j].n_heavy_atoms for j in mols]
+                    new_n = max(max_heavy) + 1
+                    for j in mols:
+                        self.mols[j].atom_numbers[i] = new_n
