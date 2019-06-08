@@ -1,16 +1,91 @@
 import re
 import os
 import logging
+from collections import namedtuple
 import numpy as np
 import mendeleev as mv
 
-from .chr_calcul import input_inter, input_intra
+from .chr_calcul import write_charge_equiv, write_intra_constraints
 
 logger = logging.getLogger(__name__)
 
-
 alpha = re.compile('[a-zA-Z]')
 itp_bonds = re.compile('\s*(?P<ai>\d+)\s*(?P<aj>\d+)\s*\d\s+')
+
+
+class Atom:
+    _symbol = NotImplemented
+    atomic_number = 0
+    _name = None
+    resp_number = 0
+    resp_name = ''
+
+    def __init__(self, name, mol):
+        self.mol = mol
+        self.name = name
+        self._n_h_bonds = 0
+        self.temp1 = 0
+        self.temp2 = 0
+        self.temp3 = 0
+        self.temp4 = 0
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        letters = alpha.search(name)
+        if not letters:
+            raise ValueError(f"There is no letter in atom {name}")
+
+        match = letters.group(1)[:2]
+        try:
+            el = mv.element(match)
+        except Exception:
+            try:
+                el = mv.element(match[:1])
+            except Exception:
+                raise ValueError(f"There is no letter in atom {name}")
+
+        self.symbol = el.symbol
+        self.atomic_number = el.atomic_number
+        self.resp_name = name
+        self._name = name
+
+    @property
+    def full_resp_name(self):
+        return f'{self.resp_name}{self.resp_number}'
+
+    @property
+    def symbol(self):
+        return self._symbol
+
+    @symbol.setter
+    def symbol(self, value):
+        if value == 'H':
+            self.resp_number = 0
+        else:
+            self.mol.n_heavy_atoms += 1
+            self.resp_number = self.mol.n_heavy_atoms
+        self._symbol = value
+
+    @property
+    def n_h_bonds(self):
+        return self._n_h_bonds
+
+    @n_h_bonds.setter
+    def n_h_bonds(self, value):
+        """Turn C to CT if it has 2+ bonds to H. Possibly inefficient."""
+        if value >= 2:
+            if self.symbol == 'C':
+                self.resp_name = 'CT'
+        self._n_h_bonds = value
+
+    def bond_to_heavy(self, other):
+        if self.resp_number == 0:  # don't double count
+            self.resp_number = other.resp_number
+            other.n_h_bonds += 1
 
 
 def indices_from_string(string):
@@ -84,31 +159,24 @@ class Molecule:
                     try:
                         mol.atom_coords[n_atoms].append(xyz)
                     except IndexError:
-                        mol.atom_names.append(line[12:16].strip())
+                        mol.add_atom(line[12:16].strip())
                         mol.atom_coords.append([xyz])
                     n_atoms += 1
 
             mol.coords = np.array(mol.atom_coords).T
             mol.count_structures()
-            mol.determine_elements()
             mol.h_bonds_from_itp(itp)
-            mol.get_resp_names()
             return mol
 
     def __init__(self):
         self.name = 'UNK'
-        self.atom_names = []
+        self.atoms = []
         self.atom_coords = []
         self.transform_remarks = []
         self.constraints = []
-        self.resp_atom_names = []
-        self.atomic_Z = []
-        self.resp_atom_numbers = []
         self.n_atoms = 0
         self.n_heavy_atoms = 0
-        self.atom_elements = []
         self.coords = None
-        self.n_h_bonds = []
         self.n_transforms = 0
         self.n_confs = 0
         self.transforms = {'REORIENT': set(),
@@ -166,28 +234,9 @@ class Molecule:
                              'Invalid line: %s' % line)
         self.constraints.append(entry)
 
-    def determine_elements(self):
-        for name in self.atom_names:
-            letters = alpha.search(name)
-            if letters:
-                match = letters.group(1)[:2]
-                try:
-                    el = mv.element(match)
-                except Exception:
-                    try:
-                        el = mv.element(match[:1])
-                    except Exception:
-                        raise ValueError(f"There is no letter in atom {name}")
-                self.atom_elements.append(el.symbol)
-                self.atomic_Z.append(el.atomic_number)
-                if el.symbol == 'H':
-                    self.resp_atom_numbers.append(0)  # placeholder
-                else:
-                    self.n_heavy_atoms += 1
-                    self.resp_atom_numbers.append(self.n_heavy_atoms)
-
-        else:
-            raise ValueError(f"There is no letter in atom {name}")
+    def add_atom(self, name):
+        atom = Atom(name=name, mol=self)
+        self.atoms.append(atom)
 
     def h_bonds_from_itp(self, itp):
         bond_section = False
@@ -195,7 +244,6 @@ class Molecule:
         with open(itp, 'r') as f:
             for line in f:
                 if '[ bonds ]' in line:
-                    self.n_h_bonds = [0] * self.n_atoms
                     bond_section = True
                     continue
                 if bond_section:
@@ -204,32 +252,17 @@ class Molecule:
                         ai = match.group('ai') - 1
                         aj = match.group('aj') - 1
 
-                        zi = self.atom_elements[ai]
-                        zj = self.atom_elements[aj]
+                        zi = self.atoms[ai].symbol
+                        zj = self.atoms[aj].symbol
 
                         if zi == 'H':
-                            # don't count twice
-                            if self.resp_atom_numbers[ai] == 0:
-                                self.resp_atom_numbers[ai] = self.resp_atom_numbers[aj]
-                                if zj == 'C':
-                                    self.n_h_bonds[aj] += 1
-
-                        elif zj == 'H':
-                            if self.resp_atom_numbers[aj] == 0:
-                                self.resp_atom_numbers[aj] = self.resp_atom_numbers[ai]
-                                if zi == 'C':
-                                    self.n_h_bonds[ai] += 1
-
-    def get_resp_names(self):
-        for symbol, n_H in zip(self.atom_elements, self.n_h_bonds):
-            if symbol == 'C':
-                if n_H > 1:
-                    self.resp_atom_names.append('CT')
-                    continue
-            self.resp_atom_names.append(symbol)
+                            self.atoms[ai].bond_to_heavy(self.atoms[aj])
+                        elif zi == 'H':
+                            self.atoms[aj].bond_to_heavy(self.atoms[ai])
 
     def write_espot(self, job):
-        header = f'{self.n_atoms:3d}{{pt:4d}}  {self.charge:2d}    {self.name}'
+        """ Write espot file."""
+        header = f'{len(self.atoms):3d}{{pt:4d}}  {self.charge:2d}    {self.name}'
         all_lines = []
 
         for c in range(1, self.n_confs+1):
@@ -255,45 +288,62 @@ class Molecule:
                 os.remove('./espot1')
         return all_lines
 
-    def write_resp_input(self, job):
-        header = (f' {job.charge_type} RESP input generated PyRESP\n'
-                  ' @cntrl\n'
-                  f'  ioutopt=1, iqopt=1, nmol={self.n_transforms}, ihfree=1, irstrnt=1, qwt= {job.qwt:5.4f} \n'
-                  ' &end \n'
-                  '  1.0\n'
-                  f' {self.name} \n'
-                  f'{self.charge:5}{self.n_atoms:5d}          Column not used by RESP')
+    def create_resp_header(self, job, nmol=None):
+        if nmol is None:
+            nmol = self.n_transforms
 
-        lines = [header]
-        atom_lines = ['', f'1.0\n {self.name}']
+        return (f' {job.charge_type} RESP input generated PyRESP\n'
+                ' @cntrl\n'
+                f'  ioutopt=1, iqopt=1, nmol={nmol}, ihfree=1, irstrnt=1, qwt= {job.qwt:5.4f} \n'
+                ' &end \n')
+
+    def get_temps(self, job):
+        sep = f'\n  1.0\n {self.name} \n{self.charge:>5d}{self.n_atoms:>5d}'
+        self.temp_lines = [sep]
         temps = []
-
-        for i, z in enumerate(self.atomic_Z):
-            line = f"  {z:2d} {{temp:3d}}                      {i+1:3d}"
-            atom_lines.append(line)
+        for i, atom in enumerate(self.atoms):
             temps.append(job.get_atom_temps(i, self))
+            line = f"  {atom.atomic_number:2d} {{temp:3d}} {'':20} {i+1:3d}"
+            self.temp_lines.append(line)
+        self.temps1, self.temps2, self.temps3, self.temps4 = zip(*temps)
 
-        temp1, temp2, temp3, temp4 = zip(*temps)
+    def get_temp_lines(self, temps):
+        templates = []
+        atom_lines = []
+        for x, temp in zip(self.temp_lines, temps):
+            templates.append(x.format(temp=temp))
 
-        atoms1, inter_conf1 = input_inter(atom_lines, temp1, self.n_structures)
-        atoms2, inter_conf2 = input_inter(atom_lines, temp2, self.n_structures)
-        atoms3, inter_conf3 = input_inter(atom_lines, temp3, self.n_structures)
-        atoms4, inter_conf4 = input_inter(atom_lines, temp4, self.n_structures)
+        atom_lines = templates * self.n_structures
+        atom_lines[0] += f'          Column not used by RESP'  # first line
+        return atom_lines
 
-        intra_confs = input_intra(self)
+    def write_resp_input_single(self, job):
+        """Write RESP input files for charge calculation"""
+        header = [self.create_resp_header(job, nmol=self.n_transforms)]
+
+        atoms1 = self.get_temp_lines(self.temps1)
+        charges1 = write_charge_equiv(self.temps1, self.n_structures)
+
+        atoms2 = self.get_temp_lines(self.temps2)
+        charges2 = write_charge_equiv(self.temps2, self.n_structures)
+
+        atoms3 = self.get_temp_lines(self.temps3)
+        constraints3 = write_intra_constraints(self.constraints, 1)
+        charges3 = write_charge_equiv(self.temps3, self.n_structures)
+
+        atoms4 = self.get_temp_lines(self.temps4)
+        charges4 = write_charge_equiv(self.temps4, self.n_structures)
 
         with open(f'input1_{self.name}', 'w') as f:
-            f.write('\n'.join(lines + atoms1 + inter_conf1))
+            f.write('\n'.join(header + atoms1 + charges1))
 
         with open(f'input2_{self.name}', 'w') as f:
-            f.write('\n'.join(lines + atoms2 + inter_conf2))
+            f.write('\n'.join(header + atoms2 + charges2))
 
         with open(f'input1_{self.name}.sm', 'w') as f:
-            f.write('\n'.join(lines + atoms3 + intra_confs + inter_conf3))
+            f.write('\n'.join(header + atoms3 + constraints3 + charges3))
 
         with open(f'input2_{self.name}.sm', 'w') as f:
-            f.write('\n'.join(lines + atoms4 + inter_conf4))
+            f.write('\n'.join(header + atoms4 + charges4))
 
         logger.info(f'Wrote RESP input files for {self.name}')
-
-        return temp3

@@ -7,6 +7,7 @@ PUNCH_PATTERN = re.compile(
 
 INPUT_INTER_REMARK = "                    Inter-'molecular' charge equivalencing (i.e. for orientations, conformations or different molecules)"
 INPUT_INTRA_REMARK = "                    Intra and/or inter-molecular charge constraints for atom or group of atoms"
+INPUT_MEQA_REMARK = "               Inter-'molecular' charge equivalencing (i. e. for different molecules)"
 
 
 def run_resp_job(input_no, name, extension=""):
@@ -107,157 +108,167 @@ def name_to_indices(mol):
     return indices
 
 
-def input_intra(mol):
+def write_intra_constraints(constraints=None, ref_atom=1):
+    if not constraints:
+        return []
     lines = []
     conf_line = ''
-    for constr in mol.constraints:
+    for constr in constraints:
         n_atoms = len(constr.atoms)
-        lines.append('')
-        # TODO: is this what %3f means??
-        lines.append(f'  {n_atoms} {constr.charge: 3.2f}')
+        lines.append(f'  {n_atoms} {constr.charge:> 4.2f}')
 
         for i, atom in enumerate(constr.atoms):
-            conf_line += f'    1  {atom:3d}'
+            conf_line += f'  {ref_atom:>3d}  {atom:>3d}'
             if i and not i % 8 and not i == n_atoms:
                 conf_line += '\n'
     lines.append(conf_line)
-    if mol.n_structures > 1:
-        lines = [INPUT_INTRA_REMARK] + lines
+    return [INPUT_INTRA_REMARK] + lines
+
+
+def write_inter_constraints(constraints=None, ref_atoms=[]):
+    if not constraints:
+        return []
+    lines = []
+    conf_line = ''
+    for constr in constraints:
+        ref_atom1 = 1 + sum(ref_atoms[:constr.mol1])
+        ref_atom2 = 1 + sum(ref_atoms[:constr.mol2])
+        lines.append(f'  {constr.n_atoms} {constr.charge:> 4.2f}')
+
+        for i, atom in enumerate(constr.atoms1):
+            conf_line += f'  {ref_atom1:>3d}  {atom:>3d}'
+            if i and not i % 8:
+                conf_line += '\n'
+        for j, atom in enumerate(constr.atoms2, i+1):
+            conf_line += f'  {ref_atom2:>3d}  {atom:>3d}'
+            if i and not i % 8:
+                conf_line += '\n'
+    lines.append(conf_line)
     return lines
 
 
-def input_inter(atom_line_templates, temps, n_confmodes):
-    templates = []
-    atom_lines = []
+def write_intra_charge(temps, mol, ref_atom=1):
     conf_lines = []
-    for x, temp in zip(atom_line_templates, temps):
-        templates.append(x.format(temp=temp))
-
-    atom_lines = templates * n_confmodes
-
     if any(x == 0 for x in temps):
         conf_lines.append(INPUT_INTER_REMARK)
-        for i in range(1, len(temps)+1):
-            if temps[i-1] == 0:
-                conf_lines.append(f'  {n_confmodes:3d}')
-                conf_line = ''
-                for j in range(1, n_confmodes):
-                    conf_line += f'  {j:3d}  {i:3d}'
-                    if j and not j % 8:
-                        conf_line += '\n'
-                conf_line += f'  {j:3d}  {i:3d}'
-                conf_lines.append(conf_line)
+    for i, temp in enumerate(temps, 1):
+        if temp == 0:
+            conf_lines.append(f'  {mol.n_structures:3d}')
+            conf_line = ''
+            for j in enumerate(mol.n_structures, 1):
+                conf_line += f'  {j+ref_atom-1:3d}  {i:3d}'
+                if j and not j % 8:  # new line every 8th step
+                    conf_line += '\n'
+            conf_lines.append(conf_line)
 
     conf_lines.append('\n\n\n\n\n')
-    return atom_lines[2:], conf_lines  # extra 1.0\n mol.title in atom_lines
+    return conf_lines
 
 
-def resp_2_temps(i, mol):
+def write_inter_equiv(constraints, temps, ref_atoms):
+    lines = []
+    # if constraints:
+    #     constr = constraints.pop()
+    #     nmol = len(constraints[0].atoms)
+    #     lines.append(INPUT_MEQA_REMARK.format(nmol=nmol))
+
+    for constr in constraints:
+        nmol = len(constr.molecules)
+        for imeq in constr.atoms:
+            lines.append(f'  {nmol: 3d}')
+            conf_line = ''
+            for i, mol in enumerate(constr.molecules, 1):
+                ref_atom = 1 + sum(ref_atoms[:mol])
+                conf_line += f'  {ref_atom: 3d}  {imeq: 3d}'
+                if i and not i % 8:
+                    conf_line += '\n'
+            lines.append(conf_line)
+            lines.append('')
+    lines[0] += INPUT_MEQA_REMARK
+    lines.append("\n\n\n\n\n\n")
+    return lines
+
+
+def same_number_with_T(atom, mol):
+    """If another atom has the same number and its name ends with T"""
+    for other in mol.atoms:
+        if atom.resp_number == other.resp_number:
+            if other.resp_name[-1] == 'T':
+                return True
+    return False
+
+
+def get_resp_1_temps(i, atom, mol):
+    """ Get temp values for RESP-A1, RESP-C1, DEBUG"""
     temp1 = temp2 = temp3 = temp4 = 0
 
-    flag = False
-    for constr in mol.constraints:
-        if i in constr.atoms:
-            temp4 = -1
-    else:
-        flag = True
-
-    i_name = mol.resp_atom_names[i]
-    i_number = mol.resp_atom_numbers[i]
-    if i_name != 'T':
-        for j, j_name in enumerate(mol.resp_atom_names[:i], 1):
-            if i_name == j_name:
+    for j, other in enumerate(mol.atoms[:i], 1):
+        if atom.full_resp_name == other.full_resp_name:
+            if (atom.resp_name[-1] == 'T' or same_number_with_T(atom, mol)):
+                temp1 = 0
+                temp2 = j
+                temp3 = 0
+                temp4 = j
+            else:
                 temp1 = j
-                temp2 = j
+                temp2 = -1
                 temp3 = j
-                temp4 = j
-                break
+                temp4 = -1
+            break
 
-        for j, j_number in enumerate(mol.resp_atom_numbers):
-            if i_number == j_number:
-                if mol.resp_atom_names[j][-1] == 'T':
-                    break
-        else:
-            temp2 = -1
+    for constr in mol.constraints:
+        if i in constr.atoms:
             temp4 = -1
+            break
 
-    else:
-        for j, j_name in enumerate(mol.resp_atom_names[:i], 1):
-            if i_name == j_name:
+    return temp1, temp2, temp3, temp4
+
+
+def get_resp_2_temps(i, atom, mol):
+    """Get temp values for RESP-A2, RESP-C2, ESP-A1, ESP-A2"""
+    temp1 = temp2 = temp3 = temp4 = 0
+    for j, other in enumerate(mol.atoms[:i], 1):
+        if atom.full_resp_name == other.full_resp_name:
+            temp1 = j
+            temp3 = j
+
+            if same_number_with_T(atom, mol):
                 temp2 = j
                 temp4 = j
-                break
+            else:
+                temp2 = -1
+                temp4 = -1
+            break
 
-    if not flag:
-        temp4 = -1
+    for constr in mol.constraints:
+        if i in constr.atoms:
+            temp4 = -1
+            break
 
     return temp1, temp2, temp3, temp4
 
 
-def resp_1_temps(i, mol):
+def get_esp_2_temps(i, atom, mol):
+    """Get temp values for ESP-A2, ESP-C2"""
     temp1 = temp2 = temp3 = temp4 = 0
 
-    flag = False
+    for j, other in enumerate(mol.atoms[:i], 1):
+        if atom.full_resp_name == other.full_resp_name:
+            if same_number_with_T(atom, mol):
+                temp2 = j
+                temp4 = j
+            else:
+                temp2 = -1
+                temp4 = -1
+
+            if any(j-1 in constr.atoms for constr in mol.constraints):
+                temp3 = j
+            break
+
     for constr in mol.constraints:
         if i in constr.atoms:
             temp4 = -1
-    else:
-        flag = True
-
-    i_name = mol.resp_atom_names[i]
-    i_number = mol.resp_atom_numbers[i]
-    for j, j_name in enumerate(mol.resp_atom_names[:i], 1):
-        if i_name == j_name:
-            temp1 = j
-            temp2 = j
-            temp3 = j
-            temp4 = j
             break
-
-    for j, j_number in enumerate(mol.resp_atom_numbers):
-        if i_number == j_number:
-            if mol.resp_atom_names[j][-1] == 'T':
-                break
-    else:
-        temp2 = -1
-        temp4 = -1
-
-    if not flag:
-        temp4 = -1
-
-    return temp1, temp2, temp3, temp4
-
-
-def esp_temps(i, mol):
-    temp1 = temp2 = temp3 = temp4 = 0
-
-    flag = False
-    for constr in mol.constraints:
-        if i in constr.atoms:
-            temp4 = -1
-    else:
-        flag = True
-
-    i_name = mol.resp_atom_names[i]
-    i_number = mol.resp_atom_numbers[i]
-    for j, j_name in enumerate(mol.resp_atom_names[:i], 1):
-        if i_name == j_name:
-            temp2 = j
-            temp3 = j
-            temp4 = j
-            break
-
-    for j, j_number in enumerate(mol.resp_atom_numbers):
-        if i_number == j_number:
-            if mol.resp_atom_names[j][-1] == 'T':
-                break
-    else:
-        temp2 = -1
-        temp4 = -1
-
-    if not flag:
-        temp4 = -1
-        temp3 = 0
 
     return temp1, temp2, temp3, temp4
 

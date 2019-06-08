@@ -1,4 +1,52 @@
-from .molecule import Molecule
+from .molecule import Molecule, indices_from_string
+
+
+class Constraint:
+    remark = ''
+    not_enough_groups = ''
+
+    @classmethod
+    def from_line(cls, mol, line):
+        groups = line.split(self.remark)[1].split('|')
+        try:
+            new = cls(mol, line, *groups)
+        except TypeError:
+            raise ValueError(f'{cls.not_enough_groups} Invalid line: {line}')
+
+
+class ConstraintMEQA(Constraint):
+    remark = 'INTER-MEQA'
+    n_groups = 2
+
+    def __init__(self, mol, line, molecules, atoms):
+        try:
+            mols = indices_from_string(molecules)
+        except ValueError:
+            try:
+                self.mols = [mol.mols.index(mol.mol_names[x]) for x in mols]
+            except ValueError:
+                raise ValueError('INTER-MEQA must specify molecules with '
+                                 'either the molecule names as given by '
+                                 'REMARK TITLE or their integer numbers as '
+                                 'indexed by 1. Invalid line: %s' % line)
+
+        try:
+            self.atoms = indices_from_string(atoms)
+        except ValueError:
+            raise ValueError('The atom numbers of INTER-MEQA must be integer '
+                             'values. Invalid line: %s' % line)
+
+        # TODO: check atom name compatibility
+
+
+class ConstraintInter(Constraint):
+    remark = 'INTER-MCC'
+    not_enough_groups = ('INTER-MCC must have 4 fields:'
+                         'charge | 2 molecule ids | '
+                         'atom numbers of mol 1 | '
+                         'atom numbers of mol 2.')
+
+    def __init__(self, mol, line, charge, molecules, atoms1, atoms2):
 
 
 class MolCollection:
@@ -25,7 +73,7 @@ class MolCollection:
 
                             elif remark == 'INTER-MEQA':
                                 collection.add_inter_meqa(line)
-        self.renumber_equivalent()
+        collection.renumber_equivalent()
         return collection
 
     def __init__(self):
@@ -120,15 +168,49 @@ class MolCollection:
                     for j in mols:
                         self.mols[j].atom_numbers[i] = new_n
 
-    def write_resp_input(self, job):
-        temps = []
-        lines = []
-        for mol in self.mols:
-            mol_sep = f'\n 1.0\n {mol.name} \n{mol.charge:5}{mol.n_atoms:5d}'
-            lines.append(mol_sep + '     Column not used by RESP')
-            mol_lines = [mol_sep]
-            templates, temps = mol.write_resp_input(job)
-            for x, temp in zip(templates, temps):
-                mol_lines.append(x.format(temp=temp))
-            lines.extend(mol_lines[1:])
-            lines.extend(mol_lines*mol.n_structures-1)
+    def write_resp_input_1(self, job):
+        n_structures = [x.n_structures for x in self.mols]
+
+        n_total_structures = sum(n_structures)
+        header = self.mols[0].create_resp_header(job, nmol=n_total_structures)
+        lines = [header]
+        charge_lines = []
+        intra_constraint_lines = []
+        mol_temps = []
+
+        for i, mol in enumerate(self.mols):
+            ref_atom = 1 + sum(n_structures[:i])
+            if mol.constraints:
+                temps = mol.temps3
+            else:
+                temps = mol.temps1
+            temps.append(temps)
+            lines.extend(mol.get_temp_lines(temps))
+
+            intra_constr = write_intra_constraints(mol.constraints, ref_atom)
+            inter_constr = write_inter_constraints(self.constraints,
+                                                   n_structures)
+            intra_constraint_lines.extend(intra_constr[1:])
+            inter_constraint_lines.extend(inter_constr)
+            charge_lines.extend(write_intra_charge(temps, mol, ref_atom))
+
+            for constr in self.meqs:
+                nmol = len(constr.molecules)
+                for imeq in constr.atoms:
+                    temp = temps[imeq]
+
+        inter = write_inter_constraints(self.constraints, n_structures)
+        meqa = write_inter_equiv(self.constraints, mol_temps)
+
+        # get around the intra/inter constraint comment
+        lines.append(intra_constr[0])
+        lines.extend(intra_constraint_lines)
+        lines.extend(inter)
+        lines.extend(charge_lines)
+
+        if any(x == 0 for y in temps for x in y):
+            lines.append('\n\n')
+        lines.extend(write_inter_equiv(self.meq, temps, n_structures))
+
+        with open('input1_mm', 'w') as f:
+            f.write('\n'.join(lines))
