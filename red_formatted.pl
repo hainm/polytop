@@ -5607,19 +5607,19 @@ $tab[3][$i][$NM],$tempimrs,$i+1
                 $CHR_TYP, $TITLE[$NM], $CHR_VAL[$NM], $nbatoms[$NM]
             );
             format_name INPirms2 "IN";
-            for ( $NM = 1 ; $NM <= $dfmol ; $NM++ ) {
+            for ( $NM = 1 ; $NM <= $dfmol ; $NM++ ) { # for every $NM molecule
                 $i = $j = $k = 0;
-                for ( $i = 0 ; $i < $nbatoms[$NM] ; $i++ ) {
-                    if ( $verifimr[$NM] == 2 ) { $tempimrs = $temp4[$i][$NM]; }
-                    else                       { $tempimrs = $temp2[$i][$NM]; }
-                    for ( $r = 1 ; $r <= $dfmol ; $r++ ) {
-                        for ( $p = 0 ; $p < $imrscount[$r] ; $p++ ) {
-                            if ( $intertom1[0][$p][$r] == $NM ) {
+                for ( $i = 0 ; $i < $nbatoms[$NM] ; $i++ ) { # for every $i-th atom in $NMth molecule
+                    if ( $verifimr[$NM] == 2 ) { $tempimrs = $temp4[$i][$NM]; } # temp4 if intRAmolecular constraints
+                    else                       { $tempimrs = $temp2[$i][$NM]; } # else temp2
+                    for ( $r = 1 ; $r <= $dfmol ; $r++ ) { # for every $r molecule
+                        for ( $p = 0 ; $p < $imrscount[$r] ; $p++ ) { # for every $p-th intERmolecular constraint
+                            if ( $intertom1[0][$p][$r] == $NM ) { # if the first molecule of this constraint == $NM
                                 for ( $o = 1 ;
-                                    $o <= $intermr[6][$p][$r] ; $o++ )
+                                    $o <= $intermr[6][$p][$r] ; $o++ ) # for every $o-th atom in intERmol. constraint
                                 {
-                                    if ( $intertom1[$o][$p][$r] == $i + 1 ) {
-                                        $tempimrs = -1;
+                                    if ( $intertom1[$o][$p][$r] == $i + 1 ) { # if $o-th atom == $i-th atom
+                                        $tempimrs = -1; # temp = -1
                                     }
                                 }
                             }

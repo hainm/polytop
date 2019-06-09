@@ -4,7 +4,6 @@
 import subprocess
 
 
-
 def get_gamess_mep_prefix(mol, test_l4a, pcgvar, n_proc, chr_type, debug=False):
     # defaults
     scf_typ = "UHF"
@@ -30,13 +29,13 @@ def get_gamess_mep_prefix(mol, test_l4a, pcgvar, n_proc, chr_type, debug=False):
         conv = "NCONV=6"
         memddi = ""
         if n_proc > 1:
-            proc=" $P2P     P2P=.T. DLB=.T.                            $END"
-    
+            proc = " $P2P     P2P=.T. DLB=.T.                            $END"
+
     if chr_type.type == 'ESP' and chr_type.coeff == 2:
         basis = 'STO'
         ngauss = '3'
         ndfunc = ''
-    
+
     if chr_type.symbol == 'C':
         ptsel = 'CHELPG'
 
@@ -65,23 +64,26 @@ def get_gamess_mep_prefix(mol, test_l4a, pcgvar, n_proc, chr_type, debug=False):
               f"C1")
     return prefix
 
+
 def run_gamess(job_file, n_proc):
     # else{ 											# GAMESS EXECUTION ON UNIX & DARWIN
     #     system ("$rungms JOB1-gam_m$NM-$NC $gx $NP > JOB1-gam_m$NM-$NC.log");
     #     system ("mv $scrpath/JOB1-gam_m$NM-$NC.dat .");
     #     if (-e "$scrpath/JOB1-gam_m$NM-$NC.irc"){ system ("mv $scrpath/JOB1-gam_m$NM-$NC.irc ."); }
-    # }			
-    subprocess.run(['rungms', job_file, "$nx, I think this is gamess version", n_proc])
+    # }
+    subprocess.run(
+        ['rungms', job_file, "$nx, I think this is gamess version", n_proc])
 
-    def read_gamess_dat(filename):
+
+def read_gamess_dat(filename):
     with open(filename + '.dat', 'r') as f:
         content = [x.strip() for x in f.readlines()]
-    
+
     atoms = []
     flag = False
     for line in content:
         if ('ELECTRIC POTENTIAL' in line
-            or 'TOTAL NUMBER OF GRID POINTS' in line):
+                or 'TOTAL NUMBER OF GRID POINTS' in line):
             flag = True
         if flag:
             if 'START OF -MOLPLT- INPUT FILE' in line:
@@ -89,14 +91,14 @@ def run_gamess(job_file, n_proc):
         if flag:
             point, *atom = map(float, line.split()[:5])
             atoms.append('{:16.7e}{:16.7e}{:16.7e}{:16.7e}'.format(*atom))
-    
+
     return point, atoms
 
 
 def read_gamess_log(filename, mol):
     with open(filename + '.log', 'r') as f:
         content = [x.strip() for x in f.readlines()]
-    
+
     flag = False
     atoms = []
     for line in content:

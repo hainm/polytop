@@ -58,53 +58,57 @@ def charges_from_punch(filename):
                     raise ValueError('No charge found; job failed.'
                                      f' See {filename}')
                 if 'nan' in ch or '*' in ch:
-                    raise ValueError('At least one charge equals zero!'
+                    raise ValueError('At least one charge invalid.'
                                      f' See {filename}')
                 charges.append(float(ch))
     return charges
 
 
-def gen_punch(mol, charges, atom_name_indices, filename):
+def gen_punch(mol, charges, filename):
+    charges = np.array(charges)
     lines = ["     Averaged ESP charges from punch1",
              "  Z     Equiv.    q(opt)	Rounding-Off"]
 
-    for i, (z, name) in enumerate(zip(mol.atomic_Z, mol.resp_atom_names)):
-        indices = atom_name_indices.get(name, [i])
-        equiv_charges = charges[indices]
+    atom_name_indices = name_to_indices(mol)
+
+    for i, atom in enumerate(mol.atoms):
+        indices = atom_name_indices.get(atom.full_resp_name, [i])
+        equiv_charges = charges[indices]  # get charges of equivalent atoms
         avg = np.mean(equiv_charges)
         j = indices[0]+1  # serial of first match
         lines.append(f"{z:<2d}     {j:<2d}     {avg:<8.7f}  {avg:<5.4f}")
 
     with open(filename, 'w') as f:
         f.write('\n'.join(lines))
+    logger.info(f'Wrote {filename}')
 
 
 def create_punch_files(mol):
-    indices = name_to_indices(mol)
-
     try:
         charges = charges_from_punch(f'punch1_{mol.name}')
-        gen_punch(mol, charges, indices, f'punch2_{mol.name}')
+        gen_punch(mol, charges, f'punch2_{mol.name}')
     except FileNotFoundError:
         pass
 
-    try:
-        charges = charges_from_punch(f'punch1_{mol.name}.sm')
-        if mol.intra_constraints:
-            gen_punch(mol, charges, {}, f'punch2_{mol.name}.sm')
-        else:
-            gen_punch(mol, charges, indices, f'punch2_{mol.name}.sm')
-    except FileNotFoundError:
-        pass
+    if mol.constraints:
+
+        try:
+            charges = charges_from_punch(f'punch1_{mol.name}.sm')
+            if mol.intra_constraints:
+                gen_punch(mol, charges, {}, f'punch2_{mol.name}.sm')
+            else:
+                gen_punch(mol, charges, indices, f'punch2_{mol.name}.sm')
+        except FileNotFoundError:
+            pass
 
 
 def name_to_indices(mol):
     indices = {}
-    for i, name in enumerate(mol.resp_atom_names):
-        if name in indices:
-            indices[name].append(i)
+    for i, atom in enumerate(mol.atoms):
+        if atom.full_resp_name in indices:
+            indices[atom.full_resp_name].append(i)
         else:
-            indices[name] = [i]
+            indices[atom.full_resp_name] = [i]
     return indices
 
 
@@ -122,7 +126,9 @@ def write_intra_constraints(constraints=None, ref_atom=1):
             if i and not i % 8 and not i == n_atoms:
                 conf_line += '\n'
     lines.append(conf_line)
-    return [INPUT_INTRA_REMARK] + lines
+    if ref_atom == 1:
+        lines = [INPUT_INTRA_REMARK] + lines
+    return lines
 
 
 def write_inter_constraints(constraints=None, ref_atoms=[]):
@@ -147,31 +153,29 @@ def write_inter_constraints(constraints=None, ref_atoms=[]):
     return lines
 
 
-def write_intra_charge(temps, mol, ref_atom=1):
+def write_intra_equivalences_all(mol_temps, mols, ref_atoms):
     conf_lines = []
-    if any(x == 0 for x in temps):
+    if any(x == 0 for y in mol_temps for x in y):
         conf_lines.append(INPUT_INTER_REMARK)
-    for i, temp in enumerate(temps, 1):
-        if temp == 0:
-            conf_lines.append(f'  {mol.n_structures:3d}')
-            conf_line = ''
-            for j in enumerate(mol.n_structures, 1):
-                conf_line += f'  {j+ref_atom-1:3d}  {i:3d}'
-                if j and not j % 8:  # new line every 8th step
-                    conf_line += '\n'
-            conf_lines.append(conf_line)
-
-    conf_lines.append('\n\n\n\n\n')
+    for m, mol in enumerate(mols):
+        temps = mol_temps[m]
+        ref_atom = 1 + sum(ref_atoms[:m])
+        for i, temp in enumerate(temps, 1):
+            if temp == 0:
+                conf_lines.append(f'  {mol.n_structures:3d}')
+                conf_line = ''
+                for j in range(1, mol.n_structures+1):
+                    conf_line += f'  {j+ref_atom-1:3d}  {i:3d}'
+                    # new line every 8th step
+                    if j and not j % 8 and not j == mol.n_structures:
+                        conf_line += '\n'
+                conf_line += '\n'
+                conf_lines.append(conf_line)
     return conf_lines
 
 
-def write_inter_equiv(constraints, temps, ref_atoms):
+def write_inter_equivalences(constraints, temps, ref_atoms):
     lines = []
-    # if constraints:
-    #     constr = constraints.pop()
-    #     nmol = len(constraints[0].atoms)
-    #     lines.append(INPUT_MEQA_REMARK.format(nmol=nmol))
-
     for constr in constraints:
         nmol = len(constr.molecules)
         for imeq in constr.atoms:
@@ -184,7 +188,43 @@ def write_inter_equiv(constraints, temps, ref_atoms):
                     conf_line += '\n'
             lines.append(conf_line)
             lines.append('')
-    lines[0] += INPUT_MEQA_REMARK
+    if lines:
+        lines[0] += INPUT_MEQA_REMARK
+    if not any(x == 0 for y in x for x in temps):
+        lines.insert(0, '\n')
+    lines.append("\n\n\n\n\n\n")
+    return lines
+
+
+def write_inter_equivalences_2(constraints, temps, ref_atoms):
+    lines = []
+    if not any(x == 0 for y in x for x in temps):
+        lines.append('\n')
+    for constr in constraints:
+        nmol = len(constr.molecules)
+        for imeq in constr.atoms:
+            conf_line = ''
+            i = 0
+            for mol in constr.molecules:
+                temp = temps[mol][imeq]
+                if temp == 0:
+                    ref_atom = 1 + sum(ref_atoms[:mol])
+                    conf_line += f'  {ref_atom: 3d}  {imeq: 3d}'
+                    i += 1
+                    # newline for every 8th
+                    if i and not i % 8:
+                        conf_line += '\n'
+                        i = 0
+
+            if conf_line:
+                # only on first mol where temp == 0
+                lines.append(f'  {nmol: 3d}')
+            lines.append(conf_line)
+            lines.append('')
+    if lines:
+        lines[0] += INPUT_MEQA_REMARK
+    if not any(x == 0 for y in x for x in temps):
+        lines.insert(0, '\n')
     lines.append("\n\n\n\n\n\n")
     return lines
 

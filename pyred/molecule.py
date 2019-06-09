@@ -3,8 +3,11 @@ import os
 import logging
 from collections import namedtuple
 import numpy as np
-import mendeleev as mv
 
+
+from .atom import Atom
+from .remark import REMARKS
+from .reorientation import rigid_body_orient, rigid_body_rotate
 from .chr_calcul import write_charge_equiv, write_intra_constraints
 
 logger = logging.getLogger(__name__)
@@ -13,91 +16,12 @@ alpha = re.compile('[a-zA-Z]')
 itp_bonds = re.compile('\s*(?P<ai>\d+)\s*(?P<aj>\d+)\s*\d\s+')
 
 
-class Atom:
-    _symbol = NotImplemented
-    atomic_number = 0
-    _name = None
-    resp_number = 0
-    resp_name = ''
-
-    def __init__(self, name, mol):
-        self.mol = mol
-        self.name = name
-        self._n_h_bonds = 0
-        self.temp1 = 0
-        self.temp2 = 0
-        self.temp3 = 0
-        self.temp4 = 0
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, name):
-        letters = alpha.search(name)
-        if not letters:
-            raise ValueError(f"There is no letter in atom {name}")
-
-        match = letters.group(1)[:2]
-        try:
-            el = mv.element(match)
-        except Exception:
-            try:
-                el = mv.element(match[:1])
-            except Exception:
-                raise ValueError(f"There is no letter in atom {name}")
-
-        self.symbol = el.symbol
-        self.atomic_number = el.atomic_number
-        self.resp_name = name
-        self._name = name
-
-    @property
-    def full_resp_name(self):
-        return f'{self.resp_name}{self.resp_number}'
-
-    @property
-    def symbol(self):
-        return self._symbol
-
-    @symbol.setter
-    def symbol(self, value):
-        if value == 'H':
-            self.resp_number = 0
-        else:
-            self.mol.n_heavy_atoms += 1
-            self.resp_number = self.mol.n_heavy_atoms
-        self._symbol = value
-
-    @property
-    def n_h_bonds(self):
-        return self._n_h_bonds
-
-    @n_h_bonds.setter
-    def n_h_bonds(self, value):
-        """Turn C to CT if it has 2+ bonds to H. Possibly inefficient."""
-        if value >= 2:
-            if self.symbol == 'C':
-                self.resp_name = 'CT'
-        self._n_h_bonds = value
-
-    def bond_to_heavy(self, other):
-        if self.resp_number == 0:  # don't double count
-            self.resp_number = other.resp_number
-            other.n_h_bonds += 1
-
-
-def indices_from_string(string):
-    return tuple(int(x)-1 for x in string.split())
-
-
 class Molecule:
     @classmethod
-    def from_pdb(cls, pdb, itp):
+    def from_pdb(cls, pdb, itp=None):
         mol = cls()
         n_atoms = 0
-
+        conf = []
         with open(pdb, 'r') as f:
             for line in f:
                 record = line[:6].strip()
@@ -108,6 +32,9 @@ class Molecule:
 
                 elif record == 'TER':
                     n_atoms = 0
+                    if conf:
+                        mol.conf_pdbs.append(conf)
+                    conf = []
 
                 # read molecule name
                 elif record == 'TITLE':
@@ -151,7 +78,8 @@ class Molecule:
                             mol.add_transform(remark, line)
 
                         elif remark == 'INTRA-MCC':
-                            mol.add_intra_mcc(remark, line)
+                            new = REMARKS[remark].from_line(line)
+                            mol.constraints.append(new)
 
                 elif record in ('ATOM', 'HETATM'):
                     _xyz = [line[30:38], line[38:46], line[46:54]]
@@ -161,15 +89,19 @@ class Molecule:
                     except IndexError:
                         mol.add_atom(line[12:16].strip())
                         mol.atom_coords.append([xyz])
+                    conf.append(line)
                     n_atoms += 1
-
+            if conf:
+                mol.conf_pdbs.append(conf)
             mol.coords = np.array(mol.atom_coords).T
             mol.count_structures()
-            mol.h_bonds_from_itp(itp)
+            if itp:
+                mol.h_bonds_from_itp(itp)
             return mol
 
     def __init__(self):
         self.name = 'UNK'
+        self.conf_pdbs = []
         self.atoms = []
         self.atom_coords = []
         self.transform_remarks = []
@@ -190,49 +122,7 @@ class Molecule:
 
     def add_transform(self, remark, line):
         self.transform_remarks.append(line)
-        groups = line.split(remark)[-1].split('|')
-
-        if remark in ('REORIENT', 'ROTATE'):
-            for group in groups:
-                try:
-                    ijk = indices_from_string(group)
-                except ValueError:
-                    raise ValueError('%s requires groups of 3 integer '
-                                     'atom numbers. Invalid line: %s'
-                                     % (remark, line))
-                self.transforms[remark].add(ijk)
-
-        elif remark == 'TRANSLATE':
-            for group in groups:
-                try:
-                    i, j, k = map(float, group.split())
-                except ValueError:
-                    raise ValueError('%s requires groups of 3 coordinate '
-                                     'floating point number values. '
-                                     'Invalid line: %s' % (remark, line))
-                self.transforms[remark].add(np.array([i, j, k]))
-
-    def add_intra_mcc(self, remark, line):
-        groups = line.split(remark)[-1].split('|')
-
-        try:
-            charge, atoms, keep = groups
-        except ValueError:
-            raise ValueError('INTRA-MCC must have 3 fields:'
-                             'charge | atom numbers | K/R. Invalid '
-                             'line: %s' % line)
-        try:
-            entry = {
-                'charge': float(charge),
-                'atoms': indices_from_string(atoms),
-                'keep': keep.strip().upper() == 'K'
-            }
-        except ValueError:
-            raise ValueError('INTRA-MCC fields must have a single '
-                             'float charge, at least one integer '
-                             'atom number, and either K or R. '
-                             'Invalid line: %s' % line)
-        self.constraints.append(entry)
+        self.transforms[remark] |= REMARKS[remark].from_line(line)
 
     def add_atom(self, name):
         atom = Atom(name=name, mol=self)
@@ -259,6 +149,28 @@ class Molecule:
                             self.atoms[ai].bond_to_heavy(self.atoms[aj])
                         elif zi == 'H':
                             self.atoms[aj].bond_to_heavy(self.atoms[ai])
+
+    def get_mep_coordinates(self):
+        coords = []
+        for conf_coords in self.coords, 1:
+            transform_coords = []
+
+            for ijk in self.transforms['REORIENT']:
+                xyz = conf_coords.copy()
+                rigid_body_orient(*ijk, xyz)
+                transform_coords.append(xyz)
+
+            for ijk in self.transforms['ROTATE']:
+                xyz = conf_coords.copy()
+                rigid_body_rotate(*ijk, xyz)
+                transform_coords.append(xyz)
+
+            for coords in self.transforms['TRANSLATE']:
+                xyz = conf_coords.copy() + coords
+                transform_coords.append(xyz)
+
+            coords.append(transform_coords)
+        return coords
 
     def write_espot(self, job):
         """ Write espot file."""
@@ -287,6 +199,35 @@ class Molecule:
             if os.path('./espot1').isfile:
                 os.remove('./espot1')
         return all_lines
+
+    def write_espot_conf(self, point, atoms):
+        """ Write espot file."""
+        header = f'{len(self.atoms):3d}{{pt:4d}}  {self.charge:2d}    {self.name}'
+        all_lines = []
+
+        for c in range(1, self.n_confs+1):
+            for w in range(1, self.n_transforms+1):
+                basename = f'{self.name}-{c}-{w}'
+
+                point, atoms = job.get_espot_info(basename)
+
+                lines = [header.format(pt=point)] + atoms
+                all_lines.extend(lines)
+                filename = f'espot_{self.name}-{c}-{w}'
+                with open(filename, w) as f:
+                    f.write('\n'.join(lines))
+                logger.info(f'Wrote {filename}')
+
+        filename = f'espot_{self.name}'
+        with open(filename, 'w') as f:
+            f.write('\n'.join(all_lines + ['', '']))
+        logger.info(f'Wrote {filename}')
+        return all_lines
+
+    def remove_espot_files(self):
+        if self.n_transforms <= 1:
+            if os.path('./espot1').isfile:
+                os.remove('./espot1')
 
     def create_resp_header(self, job, nmol=None):
         if nmol is None:
@@ -317,22 +258,16 @@ class Molecule:
         atom_lines[0] += f'          Column not used by RESP'  # first line
         return atom_lines
 
-    def write_resp_input_single(self, job):
+    def write_resp_input_single(self, header):
         """Write RESP input files for charge calculation"""
-        header = [self.create_resp_header(job, nmol=self.n_transforms)]
+        header = [header.format(nmol=self.n_transforms)]
 
-        atoms1 = self.get_temp_lines(self.temps1)
-        charges1 = write_charge_equiv(self.temps1, self.n_structures)
+        atoms1, charges1 = self.get_atoms_equivalences(self.temps1)
+        atoms2, charges2 = self.get_atoms_equivalences(self.temps2)
+        atoms3, charges3 = self.get_atoms_equivalences(self.temps3)
+        atoms4, charges4 = self.get_atoms_equivalences(self.temps4)
 
-        atoms2 = self.get_temp_lines(self.temps2)
-        charges2 = write_charge_equiv(self.temps2, self.n_structures)
-
-        atoms3 = self.get_temp_lines(self.temps3)
         constraints3 = write_intra_constraints(self.constraints, 1)
-        charges3 = write_charge_equiv(self.temps3, self.n_structures)
-
-        atoms4 = self.get_temp_lines(self.temps4)
-        charges4 = write_charge_equiv(self.temps4, self.n_structures)
 
         with open(f'input1_{self.name}', 'w') as f:
             f.write('\n'.join(header + atoms1 + charges1))
@@ -347,3 +282,86 @@ class Molecule:
             f.write('\n'.join(header + atoms4 + charges4))
 
         logger.info(f'Wrote RESP input files for {self.name}')
+
+    def write_redpdb(self):
+        lines = ['REMARK', *self.transform_remarks, 'REMARK']
+
+        for conf in self.conf_pdbs:
+            lines.extend(conf)
+            lines.append('TER')
+        if not self.transform_remarks:
+            lines.append("REMARK QMRA")
+        lines.append('END')
+
+        filename = f'File4REDDB_{self.name}.pdb'
+        with open(filename, 'w') as f:
+            f.write('\n'.join(lines))
+        logger.info(f'Wrote {filename}')
+
+    def get_transform_equivalence(self, temps):
+        conf_lines = []
+        if any(x == 0 for x in temps):
+            conf_lines.append(INPUT_INTER_REMARK)
+        for i, temp in enumerate(temps, 1):
+            if temp == 0:
+                conf_lines.append(f'  {self.n_structures:3d}')
+                conf_line = ''
+                for j in enumerate(self.n_structures, 1):
+                    conf_line += f'  {j:3d}  {i:3d}'
+                    if j and not j % 8:  # new line every 8th step
+                        conf_line += '\n'
+                conf_line += '\n'
+                conf_lines.append(conf_line)
+        conf_lines.append('\n\n\n\n\n')
+        return conf_lines
+
+    def get_atoms_equivalences(self, temps):
+        atoms = self.get_temp_lines(temps)
+        confs = self.get_transform_equivalence(temps)
+        return atoms, confs
+
+    def write_punch_file(self, charges, atom_name_indices, filename):
+        charges = np.array(charges)
+        lines = ["     Averaged ESP charges from punch1",
+                 "  Z     Equiv.    q(opt)	Rounding-Off"]
+
+        for i, atom in enumerate(self.atoms):
+            indices = atom_name_indices.get(atom.full_resp_name, [i])
+            equiv_charges = charges[indices]  # get charges of equivalent atoms
+            avg = np.mean(equiv_charges)
+            z = atom.atomic_number
+            j = indices[0]+1  # serial of first match
+            lines.append(f"{z:<2d}     {j:<2d}     {avg:<8.7f}  {avg:<5.4f}")
+
+        with open(filename, 'w') as f:
+            f.write('\n'.join(lines))
+        logger.info(f'Wrote {filename}')
+
+    def get_atom_name_indices(self):
+        indices = {}
+        for i, atom in enumerate(self.atoms):
+            if atom.full_resp_name in indices:
+                indices[atom.full_resp_name].append(i)
+            else:
+                indices[atom.full_resp_name] = [i]
+        return indices
+
+    def write_all_punch_files(self):
+        indices = self.get_atom_name_indices()
+        try:
+            charges = charges_from_punch(f'punch1_{self.name}')
+            self.write_punch_file(charges, indices, f'punch2_{self.name}')
+        except FileNotFoundError:
+            pass
+
+        if self.constraints:
+            atoms = set([x for y in self.constraints for x in y.atoms])
+            free_indices = {}
+            for k, v in indices.items():
+                free_indices[k] = [x for x in v if x not in atoms]
+            try:
+                charges = charges_from_punch(f'punch1_{self.name}.sm')
+                self.write_punch_file(charges, free_indices,
+                                      f'punch2_{self.name}.sm')
+            except FileNotFoundError:
+                pass

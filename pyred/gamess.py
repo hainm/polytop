@@ -27,10 +27,12 @@ def run_gamess(filename, verify=True):
             raise JobFailureError(f'Job failed. See {log_file}')
 
 
-def is_gamess_success(self):
+def is_gamess_success(filename):
     # TODO: read file in reverse
     normal = False
-    with open(self.log, 'r') as f:
+    if not filename[-4:] == '.log':
+        filename += '.log'
+    with open(filename, 'r') as f:
         for line in f:
             if abnormal_termination.search(line):
                 return False
@@ -39,43 +41,40 @@ def is_gamess_success(self):
     return normal
 
 
-def get_gamess_mep_prefix(mol, test_l4a, pcgvar, n_proc, chr_type, debug=False):
-    # defaults
-    scf_typ = "UHF"
-    coord = ""
-    conv = "CONV=1.0E-06"
-    memddi = "MEMDDI=0"
-    proc = ""
-    basis = "N31"
-    ngauss = "6"
-    ndfunc = "NDFUNC=1"
-    ptsel = 'CONNOLY'
-
+def get_gamess_mep_prefix(job, mol):
     if mol.multiplicity == 1:
         scf_typ = "RHF"
+    else:
+        scf_typ = "UHF"
 
-    if test_l4a:
-        if pcgvar:
+    coord = ""
+    if job.mols.test_l4a:
+        if job.pcgvar:
             coord = "D5=.T."
         else:
             coord = "ISPHER=1"
 
-    if pcgvar:
+    memddi = "MEMDDI=0"
+    proc = ""
+    conv = "CONV=1.0E-06"
+    if job.pcgvar:
         conv = "NCONV=6"
         memddi = ""
-        if n_proc > 1:
+        if job.n_processors > 1:
             proc = " $P2P     P2P=.T. DLB=.T.                            $END"
 
-    if chr_type.type == 'ESP' and chr_type.coeff == 2:
+    basis = 'N31'
+    ngauss = '6'
+    ndfunc = 'NDFUNC=1'
+    ptsel = 'CONNOLLY'
+    if job.charge_type in ('ESP-A2', 'ESP-C2'):
         basis = 'STO'
         ngauss = '3'
         ndfunc = ''
-
-    if chr_type.symbol == 'C':
+    if job.charge_type in ('RESP-C1', 'RESP-C2', 'ESP-C1', 'ESP-C2'):
         ptsel = 'CHELPG'
-
-    if debug:
-        conv[-1] = "1"
+    if job.charge_type == 'DEBUG':
+        conv[-1] = '1'
         basis = "STO"
         ngauss = "2"
         ndfunc = ""
@@ -100,53 +99,18 @@ def get_gamess_mep_prefix(mol, test_l4a, pcgvar, n_proc, chr_type, debug=False):
     return prefix
 
 
-def write_gamess_mep(mol):
-    n = 1
-    prefix = get_gamess_mep_prefix(mol)
-    elements, numbers = mol.atom_elements, mol.atomic_Z
-    atoms = [f'{el:2} {z:4.1f}' for el, z in zip(elements, numbers)]
-    filenames = []
-
-    for c, conf_coords in enumerate(mol.coords, 1):
-        filebase = f'{mol.name}-{c:02d}'
-
-        for ijk in mol.transforms['REORIENT']:
-            xyz = conf_coords.copy()
-            rigid_body_orient(*ijk, xyz)
-            filename = f'{filebase}-{n:02d}'
-            write_gamess_input(filename, prefix, atoms, xyz)
-            filenames.append(filename)
-            n += 1
-
-        for ijk in mol.transforms['ROTATE']:
-            xyz = conf_coords.copy()
-            rigid_body_rotate(*ijk, xyz)
-            filename = f'{filebase}-{n:02d}'
-            write_gamess_input(filename, prefix, atoms, xyz)
-            filenames.append(filename)
-            n += 1
-
-        for coords in mol.transforms['TRANSLATE']:
-            xyz = conf_coords.copy() + coords
-            filename = f'{filebase}-{n:02d}'
-            write_gamess_input(filename, prefix, atoms, xyz)
-            filenames.append(filename)
-            n += 1
-
-    logger.info(f'Wrote GAMESS MEP files for molecule {mol.name}')
-    return filenames
-
-
 def write_gamess_input(filename, prefix, atoms, xyz):
     lines = [prefix]
     for a, (x, y, z) in zip(atoms, xyz):
-        lines.append(f'{a} {x:12.9f} {y:12.9f} {z:12.9f}')
+        line = f'{a.symbol:2} {a.atomic_number:4.1f} {x:12.9f} {y:12.9f} {z:12.9f}'
+        lines.append(line)
     lines.append(' $END\n')
     if not filename[-4:] == '.inp':
         filename += '.inp'
     with open(filename, 'w') as f:
         f.write('\n'.join(lines))
     logger.debug(f'Wrote {filename}')
+    return filename
 
 
 def get_espot_info_gamess(basename):
