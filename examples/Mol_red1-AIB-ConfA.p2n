@@ -1,0 +1,60 @@
+REMARK
+REMARK TITLE Dimethylalanine-dipeptide_(alpha-helix)
+REMARK CHARGE-VALUE 0
+REMARK MULTIPLICITY-VALUE 1
+REMARK
+REMARK REORIENT 5 18 19 | 19 18 5 | 6 19 20 | 20 19 6
+REMARK
+REMARK Conformation close to that found in an alpha helix
+REMARK
+ATOM      1 CT1  ACE     1       3.164  -0.942  -0.371                C1
+ATOM      2  H1  ACE     1       3.181  -1.008  -1.453                H11
+ATOM      3  H1  ACE     1       3.877  -0.182  -0.067                H12
+ATOM      4  H1  ACE     1       3.466  -1.887   0.057                H13
+ATOM      5  C2  ACE     1       1.794  -0.579   0.161                C
+ATOM      6  O3  ACE     1       1.357  -1.045   1.175                O
+ATOM      7  N4  AIB     2       1.091   0.304  -0.605                N
+ATOM      8  H4  AIB     2       1.583   0.729  -1.358                H
+ATOM      9  C5  AIB     2      -0.094   1.027  -0.132                CA
+ATOM     10 CT6  AIB     2      -0.554   1.933  -1.285                CB1
+ATOM     11  H6  AIB     2       0.211   2.671  -1.513                HB11
+ATOM     12  H6  AIB     2      -0.759   1.355  -2.180                HB12
+ATOM     13  H6  AIB     2      -1.456   2.459  -1.001                HB13
+ATOM     14 CT6  AIB     2       0.222   1.874   1.106                CB2
+ATOM     15  H6  AIB     2      -0.651   2.433   1.409                HB21
+ATOM     16  H6  AIB     2       0.531   1.251   1.933                HB22
+ATOM     17  H6  AIB     2       1.023   2.569   0.870                HB23
+ATOM     18  C8  AIB     2      -1.269   0.078   0.172                C
+ATOM     19  O9  AIB     2      -2.127   0.412   0.943                O
+ATOM     20 N10  NME     3      -1.346  -1.051  -0.562                N
+ATOM     21 H10  NME     3      -0.518  -1.359  -1.013                H
+ATOM     22 CT11 NME     3      -2.369  -2.036  -0.282                C2
+ATOM     23 H11  NME     3      -2.203  -2.533   0.668                H21
+ATOM     24 H11  NME     3      -3.337  -1.557  -0.255                H22
+ATOM     25 H11  NME     3      -2.365  -2.775  -1.074                H23
+CONECT    1    2    3    4    5  
+CONECT    2    1  
+CONECT    3    1  
+CONECT    4    1  
+CONECT    5    1    6    7  
+CONECT    6    5  
+CONECT    7    5    8    9  
+CONECT    8    7  
+CONECT    9    7   10   14   18  
+CONECT   10    9   11   12   13  
+CONECT   11   10  
+CONECT   12   10  
+CONECT   13   10  
+CONECT   14    9   15   16   17  
+CONECT   15   14  
+CONECT   16   14  
+CONECT   17   14  
+CONECT   18    9   19   20  
+CONECT   19   18  
+CONECT   20   18   21   22  
+CONECT   21   20  
+CONECT   22   20   23   24   25  
+CONECT   23   22  
+CONECT   24   22  
+CONECT   25   22  
+END 

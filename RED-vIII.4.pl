@@ -1022,12 +1022,12 @@ sub Read_imrs{
 					}
 					$f=0;
 					if($verifimrs[$NM]!=1){
-						for($b=0; $b<$nbatoms[$intertom1[0][$v][$NM]]+1; $b++){
+						for($b=0; $b<$nbatoms[$intertom1[0][$v][$NM]]+1; $b++){ # for $b atom in mol 1 of INTER-MCC
 							$testnon=0;
-							for($x=1; $x<=$imrstom[3][0][$tyu]; $x++){
-								if($b==$imrstom[1][$x][$tyu]){ $testnon=1; }
+							for($x=1; $x<=$imrstom[3][0][$tyu]; $x++){ # for $x atom in INTER-MCC
+								if($b==$imrstom[1][$x][$tyu]){ $testnon=1; } # if no $b atom in INTER-MCC,
 							}
-							if($testnon!=1){ $nonimrs[1][$f][$tyu]=$b; $f++; }
+							if($testnon!=1){ $nonimrs[1][$f][$tyu]=$b; $f++; } # $nonimrs = non-INTER-MCC atoms
 						}
 					}
 					if ($allright==0) {
@@ -2880,32 +2880,32 @@ $in,$atom,$coord[0][$i-1][$NC][$NM],$coord[1][$i-1][$NC][$NM],$coord[2][$i-1][$N
 				$NC--;
 				$cmptatoms=$il=$testnom=0;
 				$rescpt=1;
-				for($i=1; $i<=$nbatoms[$NM]; $i++){
+				for($i=1; $i<=$nbatoms[$NM]; $i++){ # for $i atom
 					$testr=0;
 					if($i==1){$rescpt=1;}
-					for($y=0; $y<=$imrcount[$NM]; $y++){
-						if(!defined($intramr[4][$y][$NM])){ $intramr[4][$y][$NM]=0; }
+					for($y=0; $y<=$imrcount[$NM]; $y++){ # for $y constraint
+						if(!defined($intramr[4][$y][$NM])){ $intramr[4][$y][$NM]=0; } 
 						if(!defined($intramr[3][$y][$NM])){ $intramr[3][$y][$NM]=""; }
-						for($w=0;$w<=$intramr[4][$y][$NM];$w++){
-							if(!defined($intratom[$w][$y][$NM])){ $intratom[$w][$y][$NM]=0; }
-							if(($intratom[$w][$y][$NM]==$i) && ($intramr[3][$y][$NM]!~/[K]/)){ $testr=1; }
+						for($w=0;$w<=$intramr[4][$y][$NM];$w++){ # for $w atom in constraint
+							if(!defined($intratom[$w][$y][$NM])){ $intratom[$w][$y][$NM]=0; } # if $i atom in constraint and constraint not Keep, 
+							if(($intratom[$w][$y][$NM]==$i) && ($intramr[3][$y][$NM]!~/[K]/)){ $testr=1; } # $testr=1
 						}
 					}
-					if($testr==1){ $cmptatoms++; }
-					if($testr==0){
+					if($testr==1){ $cmptatoms++; } # if remove, cmptatoms++
+					if($testr==0){ # if not remove $i:
 						$saveres[2][$il][$NM]=$residu[$i-1][$NM];
 						$saveres[5][$il][$NM]=$tab[4][$i-1][$NM];
-						if($il==0){ $molname2=$saveres[5][$il][$NM]; }
+						if($il==0){ $molname2=$saveres[5][$il][$NM]; } # molname2= resName if first atom
 						elsif($il!= 0){
-							if($saveres[2][$il-1][$NM] != $saveres[2][$il][$NM]){
-								$rescpt++; $testnom=1;
-								$molname2=$molname2."-".$saveres[5][$il][$NM];
+							if($saveres[2][$il-1][$NM] != $saveres[2][$il][$NM]){ # if different residue
+								$rescpt++; $testnom=1; 
+								$molname2=$molname2."-".$saveres[5][$il][$NM]; # molname2 += resName
 							}
 						}
 					$il++;
 					}
 				}
-				$cmptatoms = $nbatoms[$NM]-$cmptatoms;
+				$cmptatoms = $nbatoms[$NM]-$cmptatoms; # n atoms to keep
 				$cmptconnect=0;
 				for($i=0; $i<$nbconect[$NM]; $i++){
 					($at1,$at2)=(split(/\-/,$conections[$i][$NM]));
@@ -3556,7 +3556,7 @@ $in,$atom,$coord[0][$i-1][$NC][$NM],$coord[1][$i-1][$NC][$NM],$coord[2][$i-1][$N
 							for($i=0; $i<$nbconect[$imrsmol[0][$ri]]; $i++){
 								($at1,$at2)=(split(/\-/,$conections[$i][$imrsmol[0][$ri]]));
 								$test2=0;
-								for($b=1; $b<=$nbatoms[$imrsmol[0][2]]-$imrstom[3][0][2]; $b++){
+								for($b=1; $b<=$nbatoms[$imrsmol[0][2]]-$imrstom[3][0][2]; $b++){ # for $b atom in mol NOT in INTER-MCC
 									if($nonimrs[1][$b][2]==$at2){
 										for($d=1; $d<=$nbatoms[$imrsmol[0][2]]-$imrstom[3][0][2]; $d++){
 											if($nonimrs[1][$d][2]==$at1){ $test2=1; }

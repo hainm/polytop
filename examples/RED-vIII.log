@@ -1,0 +1,160 @@
+		      ---------------------------
+		      *  Welcome to R.E.D. III  *
+		         RESP ESP charge Derive  
+		  http://q4md-forcefieldtools.org/RED/ 
+
+		         CHARGE TYPE = RESP-A1
+		      ---------------------------
+
+  ==========================================================================  
+  =====================  Checking molecule 1 !  ============================  
+	 The molecule TITLE is "Dimethylalanine-dipeptide_(alpha-helix)"
+		The TOTAL CHARGE value of the molecule is "0"
+	      The SPIN MULTIPLICITY value of the molecule is "1"
+  ==========================================================================  
+
+		    * Selected optimization output *
+				GAUSSIAN
+		    Optimization OUTPUT looks nice ! 
+
+		     * 1 conformation(s) selected *
+
+			       WARNING:
+		  A 2nd column of atom names is detected
+        This 2nd column will be used in the PDB (& Tripos) file(s)
+
+	    * Selected three atom based re-orientation(s) *
+	                 4 re-orientation(s):
+			    5     18     19 
+			   19     18      5 
+			    6     19     20 
+			   20     19      6 
+
+  ==========================================================================  
+  =====================  Checking molecule 2 !  ============================  
+	 The molecule TITLE is "Dimethylalanine-dipeptide_(extended)"
+		The TOTAL CHARGE value of the molecule is "0"
+	      The SPIN MULTIPLICITY value of the molecule is "1"
+  ==========================================================================  
+
+		    * Selected optimization output *
+				GAUSSIAN
+		    Optimization OUTPUT looks nice ! 
+
+		     * 1 conformation(s) selected *
+
+			       WARNING:
+		  A 2nd column of atom names is detected
+        This 2nd column will be used in the PDB (& Tripos) file(s)
+
+	    * Selected three atom based re-orientation(s) *
+	                 4 re-orientation(s):
+			    5     18     19 
+			   19     18      5 
+			    6     19     20 
+			   20     19      6 
+
+  ==========================================================================  
+  =====================  Checking molecule 3 !  ============================  
+	 The molecule TITLE is "Dimethylalanine-dipeptide"
+		The TOTAL CHARGE value of the molecule is "0"
+	      The SPIN MULTIPLICITY value of the molecule is "1"
+  ==========================================================================  
+
+		    * Selected optimization output *
+				GAUSSIAN
+		    Optimization OUTPUT looks nice ! 
+
+		     * 2 conformation(s) selected *
+
+			       WARNING:
+		  A 2nd column of atom names is detected
+        This 2nd column will be used in the PDB (& Tripos) file(s)
+
+	    * Selected three atom based re-orientation(s) *
+	                 4 re-orientation(s):
+			    5     18     19 
+			   19     18      5 
+			    6     19     20 
+			   20     19      6 
+
+  ==========================================================================  
+  = Checking inter-mol. charge restraint & inter-mol. charge equivalencing =  
+  ==========================================================================  
+
+	       * No inter-molecular charge restraint detected *
+
+	     * No inter-molecular charge equivalencing detected * 
+     Job(s) will be performed as a batch; each molecule being independent
+
+  ==========================================================================  
+
+		        * Selected QM Software *
+			        GAUSSIAN 
+
+		         * Software checking *
+	   g98 								[ OK ]
+	   resp 							[ OK ]
+
+   MEP(s) is/are being computed for molecule 1 ...			[ OK ]
+	See the file(s) "JOB2-gau_m1-1-(X).log"
+
+   MEP(s) is/are being computed for molecule 2 ...			[ OK ]
+	See the file(s) "JOB2-gau_m2-1-(X).log"
+
+   MEP(s) is/are being computed for molecule 3 ...
+
+	Conformation 1 ... 						[ OK ]
+	See the file(s) "JOB2-gau_m3-1-(X).log"
+
+	Conformation 2 ... 						[ OK ]
+	See the file(s) "JOB2-gau_m3-2-(X).log"
+
+   The RESP-A1 charges are being derived for molecule 1 ...		[ OK ]
+	See the "punch2_m1" file(s)
+
+	The following Tripos Mol2 file(s) has/have been created.
+	Mol_m1-o1.mol2
+
+   The RESP-A1 charges are being derived for molecule 2 ...		[ OK ]
+	See the "punch2_m2" file(s)
+
+	The following Tripos Mol2 file(s) has/have been created.
+	Mol_m2-o1.mol2
+
+   The RESP-A1 charges are being derived for molecule 3 ...		[ OK ]
+	See the "punch2_m3" file(s)
+
+	The following Tripos Mol2 file(s) has/have been created.
+	Mol_m3-o1.mol2	Mol_m3-o2.mol2
+
+
+   The RESP-A1 charges are being derived for ALL molecules...		[ OK ]
+	See the "punch2_mm" file
+
+	The following Tripos Mol2 file(s) has/have been created.
+	Mol_m1-o1-mm2.mol2 
+	Mol_m2-o1-mm2.mol2 
+	Mol_m3-o1-mm2.mol2 Mol_m3-o2-mm2.mol2 
+
+
+	Execution time: 0 h 46 m 50 s
+
+  ***********************************************************************
+    R.E.D. I was developed at the "Faculte de Pharmacie" in Amiens
+         by:  A. Pigache (1), P. Cieplak (2) & F.-Y. Dupradeau (1)
+
+    R.E.D. II was developed in Prof. D.A. Case's laboratory
+         by:  T. Zaffran (1,3), P. Cieplak (2) & F.-Y. Dupradeau (1,3)
+
+    R.E.D. III development was initiated in Prof. D.A. Case's laboratory
+            & finalized at the "Faculte de Pharmacie" in Amiens
+         by:  N. Grivel (1,3), P. Cieplak (4) & F.-Y. Dupradeau (1,3)
+
+    R.E.D. IV is now developed at the "Faculte de Pharmacie" in Amiens
+
+     (1) DMAG EA 3901, Faculte de Pharmacie, Amiens, France
+     (2) Accelrys Inc., San Diego, USA
+     (3) The Scripps Research Institute, La Jolla, CA, USA
+     (4) Burnham Institute for Medical Research, La Jolla, CA, USA
+   ***********************************************************************

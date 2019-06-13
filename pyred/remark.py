@@ -1,5 +1,9 @@
 import numpy as np
 
+INPUT_INTER_REMARK = "                    Inter-'molecular' charge equivalencing (i.e. for orientations, conformations or different molecules)"
+INPUT_INTRA_REMARK = "                    Intra and/or inter-molecular charge constraints for atom or group of atoms"
+INPUT_MEQA_REMARK = "               Inter-'molecular' charge equivalencing (i. e. for different molecules)"
+
 
 def indices_from_string(string):
     return tuple(int(x)-1 for x in string.split())
