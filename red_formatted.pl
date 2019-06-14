@@ -4669,18 +4669,18 @@ sub CHR_Calcul {
             for ( $i = 0 ; $i < $nbatoms[$NM] ; $i++ ) {
                 $temp = $flag = $nbA = 0;
                 for ( $j = 0 ; $j < $nbatoms[$NM] ; $j++ ) {
-                    if ( $tab[0][$i][$NM] eq $tab[0][$j][$NM] ) {
-                        if ( $flag == 0 ) { $temp = $j + 1; $flag++; }
+                    if ( $tab[0][$i][$NM] eq $tab[0][$j][$NM] ) { # if any atom $j has same name as $i
+                        if ( $flag == 0 ) { $temp = $j + 1; $flag++; } # $temp = $j
                         $nbA++;
                     }
                 }
-                if ( $nbA > 1 ) {
-                    $equiv[$i][$NM] = $temp;
+                if ( $nbA > 1 ) { # if more than one match #nbA
+                    $equiv[$i][$NM] = $temp; # $equiv = first match $j
                 }
-                else { $equiv[$i][$NM] = $i + 1; }
-                if ( $verifimr[$NM] == 2 ) {
+                else { $equiv[$i][$NM] = $i + 1; } # else $equiv = atom $i
+                if ( $verifimr[$NM] == 2 ) { # if intra-mcc constraints present:
                     if ( $nbA > 1 ) {
-                        $equivimr[$i][$NM] = $temp;
+                        $equivimr[$i][$NM] = $temp; # $equivimr = $equiv
                     }
                     else { $equivimr[$i][$NM] = $i + 1; }
                 }
@@ -4709,7 +4709,7 @@ $num,$num2,$average[$k][$NM],$average[$k][$NM]
                 format_name PUNCH2 "PUNCH2F";
                 $k = $g = 0;
                 for ( $g = 0 ; $g < $nbatoms[$NM] ; $g++ ) {
-                    $arg = $equiv[$g][$NM];
+                    $arg = $equiv[$g][$NM]; # shared representation
                     $compt = $total = 0;
                     for ( $j = 0 ; $j <= $i ; $j++ ) {
                         if ( $arg == $equiv[$j][$NM] ) {
@@ -4717,12 +4717,12 @@ $num,$num2,$average[$k][$NM],$average[$k][$NM]
                             $total += $qcharge[$j][$NM];
                         }
                     }
-                    if ( $equiv[$k][$NM] != 0 ) {
+                    if ( $equiv[$k][$NM] != 0 ) { # average all charges of atoms with same name
                         $average[$k][$NM] = $total / $compt;
                     }
                     else { $average[$k][$NM] = $qcharge[$k][$NM]; }
-                    $num  = $tab[3][$k][$NM];
-                    $num2 = $equiv[$k][$NM];
+                    $num  = $tab[3][$k][$NM]; # atomic number Z of atom $g/$k
+                    $num2 = $equiv[$k][$NM]; # first atom number of all equivalent atoms
                     write PUNCH2;
                     $k++;
                 }
@@ -4754,24 +4754,24 @@ $num,$num2,$averageimr[$k][$NM],$averageimr[$k][$NM]
                     );
                     format_name PUNCH2_IMR "PUNCH2FIMR";
                     $k = $f = 0;
-                    for ( $f = 0 ; $f < $nbatoms[$NM] ; $f++ ) {
+                    for ( $f = 0 ; $f < $nbatoms[$NM] ; $f++ ) { # for $f atom
                         $argimr = $equivimr[$f][$NM];
                         $compt = $total = 0;
-                        for ( $j = 0 ; $j <= $i ; $j++ ) {
+                        for ( $j = 0 ; $j <= $i ; $j++ ) { # for $j atom
                             $y = $w = $imrv = 0;
-                            for ( $y = 0 ; $y < $imrcount[$NM] ; $y++ ) {
+                            for ( $y = 0 ; $y < $imrcount[$NM] ; $y++ ) { # for $y intra-mcc constraint
                                 for ( $w = 0 ;
-                                    $w < $intramr[4][$y][$NM] ; $w++ )
+                                    $w < $intramr[4][$y][$NM] ; $w++ ) # for $w atom in constraint
                                 {
                                     if ( $intratom[$w][$y][$NM] == $j ) {
-                                        $imrv = 1;
+                                        $imrv = 1; # if any $j atom in mcc, imrv = 1
                                     }
                                 }
                             }
-                            if (   ( $argimr == $equivimr[$j][$NM] )
-                                && ( $imrv != 1 ) )
+                            if (   ( $argimr == $equivimr[$j][$NM] ) # if $j atom has equiv
+                                && ( $imrv != 1 ) ) # and not in mcc constraint
                             {
-                                $compt++;
+                                $compt++; # add to constraint
                                 $total += $qchargeimr[$j][$NM];
                             }
                         }
@@ -4794,10 +4794,10 @@ $num,$num2,$averageimr[$k][$NM],$averageimr[$k][$NM]
             foreach (<PUNCH1>) {
                 if (/\s+\d+\s+\d+\s+(\-\d+|\d+)\.\d+\s+/ig) {
                     ($chr) = ( split(' ') )[3];
-                    if ( ( $chr =~ /\*+/ ) || ( $chr =~ "nan" ) ) {
+                    if ( ( $chr =~ /\*+/ ) || ( $chr =~ "nan" ) ) { # $ok=0 if nan etc
                         $ok = 0;
                     }    # FyD March 2009
-                    elsif ( ( $chr == 0 ) && ( $ok != 0 ) ) { $ok = 2; }
+                    elsif ( ( $chr == 0 ) && ( $ok != 0 ) ) { $ok = 2; } #ok=2 if charge is 0
                 }
             }
             close(PUNCH1);
@@ -4820,7 +4820,7 @@ $num,$num2,$averageimr[$k][$NM],$averageimr[$k][$NM]
                 }
             }
         }
-        else { $ok = 0 }
+        else { $ok = 0 } #$ok=0 if no file
         if ( $verifimr[$NM] == 2 ) {
             if ( -e "punch1_m$NM.sm" ) {
                 open( PUNCH1_IMR, "<punch1_m$NM.sm" );
@@ -4972,15 +4972,15 @@ $i,$atom,$coord[0][$i-1][$NC][$NM],$coord[1][$i-1][$NC][$NM],$coord[2][$i-1][$NC
                     open( PCH_FILE, "<punch2_m$NM" );
                     foreach (<PCH_FILE>) {
                         if (
-/    NO   At\.No\.    q0           q\(opt\)   IVARY  d\(rstr\)\/dq/ig
+/    NO   At\.No\.    q0           q\(opt\)   IVARY  d\(rstr\)\/dq/ig # after this line
                           )
                         {
                             $flag = 1;
                         }
                         if ( $flag == 1 ) { $i++; }
                         if ( ( $i >= 2 ) && ( $i <= $nbatoms[$NM] + 2 ) ) {
-                            $k = $i + ( $nbatoms[$NM] * $nbmod[$NM] * $NC );
-                            ( $average[ $k - 2 ][$NM] ) = ( split(' ') )[3];
+                            $k = $i + ( $nbatoms[$NM] * $nbmod[$NM] * $NC ); # $k = i+(n_atoms*n_stransforms*$NC)
+                            ( $average[ $k - 2 ][$NM] ) = ( split(' ') )[3]; #average[k-2] = q(opt)
                         }
                     }
                     close(PCH_FILE);
@@ -5010,7 +5010,7 @@ $i,$atom,$coord[0][$i-1][$NC][$NM],$coord[1][$i-1][$NC][$NM],$coord[2][$i-1][$NC
                 for ( $j = 0 ; $j < $nbatoms[$NM] ; $j++ ) {
                     $atom = $tab[1][$i][$NM];
                     if ( ( $tab[1][$i][$NM] =~ /T$/ ) ) { $atom =~ s/T//; }
-                    $potelect = $average[$i][$NM];
+                    $potelect = $average[$i][$NM]; # potelect = average charge
                     $i++;
                     $element = $atom;
                     $atom    = "$atom" . "$i";
@@ -5620,7 +5620,7 @@ $tab[3][$i][$NM],$tempimrs,$i+1
                                 {
                                     if ( $intertom1[$o][$p][$r] == $i + 1 ) { # if $o-th atom == $i-th atom
                                         $tempimrs = -1; # temp = -1
-                                    }
+                                    } # i.e. if this atom is in any constraint, temp = -1
                                 }
                             }
                             elsif ( $intertom2[0][$p][$r] == $NM ) {
@@ -5698,14 +5698,14 @@ $tab[3][$i][$NM],$tempimrs,$i+1
                 }
             }
             $o = $t = 0;
-            for ( $NM = 1 ; $NM <= $dfmol ; $NM++ ) {
-                if ( $verifimeq[$NM] == 2 ) {
-                    for ( $i = 0 ; $i < $imeqcount[$NM] ; $i++ ) {
-                        $nmol = $intermeq[2][$i][$NM];
-                        for ( $j = 0 ; $j < $intermeq[3][$i][$NM] ; $j++ ) {
-                            $imeq = $imeqtom2[$j][$i][$NM];
+            for ( $NM = 1 ; $NM <= $dfmol ; $NM++ ) { # for $NM molecule
+                if ( $verifimeq[$NM] == 2 ) { # if MEQA constraints
+                    for ( $i = 0 ; $i < $imeqcount[$NM] ; $i++ ) { # for constraint
+                        $nmol = $intermeq[2][$i][$NM]; # number of mol in constraint
+                        for ( $j = 0 ; $j < $intermeq[3][$i][$NM] ; $j++ ) { # for each atom in constraint
+                            $imeq = $imeqtom2[$j][$i][$NM]; # imeq = specific atom $j in specific constraint $i for $NM
                             $comp = 0;
-                            for ( $s = 0 ; $s < $intermeq[2][$i][$NM] ; $s++ ) {
+                            for ( $s = 0 ; $s < $intermeq[2][$i][$NM] ; $s++ ) { # for each $s mol in constraint
                                 $tempimrs =
                                   $temp5[ $imeq - 1 ][ $imeqtom1[$s][$i][$NM] ];
                                 $natom = 1;
