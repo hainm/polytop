@@ -1,6 +1,6 @@
 # PolyTop
 
-A topology builder for polymers. [Click here to go to the web app.](https://lilyminium.github.io/polytop/webapp.html)
+A topology builder for polymers. [Click here to go to the web app.](https://lilyminium.github.io/polytop/)
 
 ## Features
 Currently PolyTop only supports GROMACS .itp topologies and .pdb coordinates.
